@@ -25,28 +25,34 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 
 /**
+ * In Java DB an environment is what you would usually call a database and
+ * what they call a database is more similar to a table in other contexts.
+ *
+ * In any case a Database is just like a persistant hashmap, there is a key and
+ * a value.
+ * 
  * @author Steve Ratcliffe
  */
 public class OsmDatabase {
 	private Environment env;
 
-	private Database nodedb;
+	private Database nodeDb;
 	private Database waydb;
 
-	public OsmDatabase() {
-		makeEnv();
-	}
+	private boolean writeable;
 
-	private void makeEnv() {
+	public void init(boolean write) {
+		writeable = write;
+
 		EnvironmentConfig config = new EnvironmentConfig();
-		config.setAllowCreate(true);
+		config.setAllowCreate(write);
 		try {
 			env = new Environment(new File("db"), config);
 			DatabaseConfig dbconf = new DatabaseConfig();
-			dbconf.setAllowCreate(true);
+			dbconf.setAllowCreate(write);
 			dbconf.setDeferredWrite(true);
 
-			nodedb = env.openDatabase(null, "nodes", dbconf);
+			nodeDb = env.openDatabase(null, "nodes", dbconf);
 			waydb = env.openDatabase(null, "ways", dbconf);
 
 		} catch (DatabaseException e) {
@@ -56,20 +62,28 @@ public class OsmDatabase {
 	}
 
 	public void sync() throws DatabaseException {
-		nodedb.sync();
+		if (!writeable)
+			return;
+
+		nodeDb.sync();
 		waydb.sync();
 	}
 
 	public void close() {
 		if (env == null)
 			return;
+
 		try {
-			nodedb.close();
+			nodeDb.close();
 			waydb.close();
 
 			env.close();
 		} catch (DatabaseException e) {
 			// ignore
 		}
+	}
+
+	public Database getNodeDb() {
+		return nodeDb;
 	}
 }
