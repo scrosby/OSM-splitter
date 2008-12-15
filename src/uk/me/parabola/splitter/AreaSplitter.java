@@ -38,21 +38,23 @@ public class AreaSplitter {
 
 		boolean notDone = true;
 		while (notDone) {
-			System.out.println("Need to split");
 
 			notDone = false;
 			ListIterator<SubArea> it = l.listIterator();
 			while (it.hasNext()) {
 				SubArea workarea = it.next();
 				Int2ReferenceOpenHashMap map = workarea.getCoords();
-				if (map == null)
+				if (map == null) {
 					continue;
+				}
+
 				int size = map.size();
-				System.out.println("size is " + size + ", " + workarea.getSize());
+				System.out.println("comparing size " + workarea.getSize());
 				if (size < max) {
 					workarea.clear();
 					continue;
 				}
+				System.out.println("Need to split");
 
 				notDone = true;
 				Area bounds = workarea.getBounds();
@@ -76,11 +78,29 @@ public class AreaSplitter {
 	}
 
 	private SubArea[] splitHoriz(SubArea base) {
-		System.out.println("split horiz");
+		System.out.println("split horiz size=" + base.getSize());
 		Area bounds = base.getBounds();
-		int right = bounds.getMaxLong();
 		int left = bounds.getMinLong();
-		int mid = (right + left )/2;
+		int right = bounds.getMaxLong();
+		System.out.println("left = " + left);
+		System.out.println("right = " + right);
+
+		Int2ReferenceOpenHashMap<Coord> baseCoords = base.getCoords();
+
+		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = baseCoords.int2ReferenceEntrySet();
+		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
+		int count = 0;
+		long total = 0;
+		while (it.hasNext()) {
+			Int2ReferenceMap.Entry<Coord> entry = it.next();
+			assert entry.getValue().getLongitude() >= left && entry.getValue().getLongitude() <= right : entry.getValue().getLongitude();
+			count++;
+			total += entry.getValue().getLongitude() - left + 1;
+			assert total < 0x3fffffff && total >= 0 : total;
+		}
+		int mid = (int) (left + total / count);
+		System.out.println("mid = " + mid + ", tot=" + total + ", count=" + count);
+
 		System.out.println("in " + bounds);
 		Area b1 = new Area(bounds.getMinLat(), bounds.getMinLong(), bounds.getMaxLat(), mid);
 		Area b2 = new Area(bounds.getMinLat(), mid, bounds.getMaxLat(), bounds.getMaxLong());
@@ -94,22 +114,20 @@ public class AreaSplitter {
 		SubArea a1 = new SubArea(b1, size);
 		SubArea a2 = new SubArea(b2, size);
 
-		Int2ReferenceOpenHashMap<Coord> baseLats = base.getCoords();
-
-		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = baseLats.int2ReferenceEntrySet();
-		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
+		fastEntrySet = baseCoords.int2ReferenceEntrySet();
+		it = fastEntrySet.fastIterator();
 		while (it.hasNext()) {
 			Int2ReferenceMap.Entry<Coord> entry = it.next();
 			int key = entry.getIntKey();
 			Coord co = entry.getValue();
-			if (co.getLongitude() > mid) {
+			if (co.getLongitude() < mid) {
 				a1.put(key, co);
 			} else {
 				a2.put(key, co);
 			}
 		}
 
-		System.out.println("lat size " + a1.getSize() +", " + a2.getSize());
+		System.out.println("split sizes " + a1.getSize() +", " + a2.getSize());
 		return new SubArea[]{a1, a2};
 	}
 
@@ -118,10 +136,27 @@ public class AreaSplitter {
 		Area bounds = base.getBounds();
 		int top = bounds.getMaxLat();
 		int bot = bounds.getMinLat();
-		int mid = (top + bot )/2;
 
-		Area b1 = new Area(mid, bounds.getMinLong(), bounds.getMaxLat(), bounds.getMaxLong());
-		Area b2 = new Area(bounds.getMinLat(), bounds.getMinLong(), mid, bounds.getMaxLong());
+		Int2ReferenceOpenHashMap<Coord> caseCoords = base.getCoords();
+
+		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = caseCoords.int2ReferenceEntrySet();
+		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
+		int count = 0;
+		long total = 0;
+		while (it.hasNext()) {
+			Int2ReferenceMap.Entry<Coord> entry = it.next();
+			assert entry.getValue().getLatitude() >= bot && entry.getValue().getLongitude() <= top;
+			count++;
+			total += entry.getValue().getLatitude() - bot;
+			assert total < 0x3fffffff && total >= 0;
+		}
+		int mid = (int) (bot + total / count);
+		System.out.println("bot = " + bot);
+		System.out.println("top = " + top);
+		System.out.println("mid = " + mid);
+
+		Area b1 = new Area(bounds.getMinLat(), bounds.getMinLong(), mid, bounds.getMaxLong());
+		Area b2 = new Area(mid, bounds.getMinLong(), bounds.getMaxLat(), bounds.getMaxLong());
 
 		int size = base.getSize()/2;
 		if (size < 1000)
@@ -130,22 +165,22 @@ public class AreaSplitter {
 		SubArea a1 = new SubArea(b1, size);
 		SubArea a2 = new SubArea(b2, size);
 
-		Int2ReferenceOpenHashMap<Coord> baseLats = base.getCoords();
+		caseCoords = base.getCoords();
 
-		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = baseLats.int2ReferenceEntrySet();
-		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
+		fastEntrySet = caseCoords.int2ReferenceEntrySet();
+		it = fastEntrySet.fastIterator();
 		while (it.hasNext()) {
 			Int2ReferenceMap.Entry<Coord> entry = it.next();
 			int key = entry.getIntKey();
 			Coord co = entry.getValue();
-			if (co.getLatitude() > mid) {
+			if (co.getLatitude() <= mid) {
 				a1.put(key, co);
 			} else {
 				a2.put(key, co);
 			}
 		}
 
-		System.out.println("lat size " + a1.getSize() +", " + a2.getSize());
+		System.out.println("split sizes " + a1.getSize() +", " + a2.getSize());
 
 		return new SubArea[]{a1, a2};
 	}
