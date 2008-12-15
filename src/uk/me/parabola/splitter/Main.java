@@ -16,18 +16,17 @@
  */
 package uk.me.parabola.splitter;
 
-import java.io.InputStream;
-import java.io.FileNotFoundException;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 
-import javax.xml.parsers.SAXParserFactory;
-import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.SAXException;
-import com.sleepycat.je.DatabaseException;
 
 
 /**
@@ -57,24 +56,21 @@ public class Main {
 	private void readFile(String filename) throws IOException,
 			SAXException, ParserConfigurationException
 	{
-		OsmDatabase db = new OsmDatabase();
-
 		InputStream is = openFile(filename);
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
 
 		OsmXmlHandler xmlHandler = new OsmXmlHandler();
-		xmlHandler.setCallbacks(new DbWriter(db));
-
-		parser.parse(is, xmlHandler);
+//		xmlHandler.setCallbacks(null);
 
 		try {
-			System.out.println("syncing now ");
-			db.sync();
-		} catch (DatabaseException e) {
-			System.err.println("could not sync");
+			parser.parse(is, xmlHandler);
+		} catch (SAXException e) {
+			SubArea totalArea = xmlHandler.getTotalArea();
+			AreaSplitter splitter = new AreaSplitter();
+			splitter.split(totalArea, 1000000);
 		}
-		db.close();
+
 	}
 
 	/**

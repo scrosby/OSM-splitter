@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Steve Ratcliffe
+ * Copyright (C) 2008 Steve Ratcliffe
  * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -12,17 +12,14 @@
  * 
  * 
  * Author: Steve Ratcliffe
- * Create date: Dec 19, 2007
+ * Create date: 14-Dec-2008
  */
 package uk.me.parabola.splitter;
-
-import com.sleepycat.je.DatabaseException;
 
 /**
  * @author Steve Ratcliffe
  */
-public class WriteException extends RuntimeException {
-	public WriteException(DatabaseException e) {
-		super(e);
+public class Splitter implements MapCollector {
+	public void addNode(OsmNode node) {
 	}
 }

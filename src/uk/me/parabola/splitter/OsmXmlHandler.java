@@ -16,6 +16,10 @@
  */
 package uk.me.parabola.splitter;
 
+import uk.me.parabola.imgfmt.app.Coord;
+import uk.me.parabola.mkgmap.general.MapDetails;
+
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -23,7 +27,7 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * Reads and parses the OSM XML format in a way that is usefull for the splitter.
+ * Reads and parses the OSM XML format in a way that is useful for the splitter.
  *
  * @author Steve Ratcliffe
  */
@@ -31,12 +35,16 @@ class OsmXmlHandler extends DefaultHandler {
 	private int mode;
 
 	private static final int MODE_NODE = 1;
-	private static final int MODE_WAY = 2;
 
-	private MapCollector callbacks;
+	private Long2IntOpenHashMap lats = new Long2IntOpenHashMap(100000, 0.8f);
+	private Long2IntOpenHashMap lons = new Long2IntOpenHashMap(100000, 0.8f);
 
-	private Way currentWay;
-	private OsmNode currentNode;
+	private MapDetails details = new MapDetails();
+
+	OsmXmlHandler() {
+		lats.growthFactor(8);
+		lons.growthFactor(8);
+	}
 
 	/**
 	 * Receive notification of the start of an element.
@@ -66,39 +74,20 @@ class OsmXmlHandler extends DefaultHandler {
 				mode = MODE_NODE;
 
 				String id = attributes.getValue("id");
-				String lat = attributes.getValue("lat");
-				String lon = attributes.getValue("lon");
+				String slat = attributes.getValue("lat");
+				String slon = attributes.getValue("lon");
 
-				currentNode = new OsmNode(id, lat, lon);
-//				callbacks.addNode(Long.parseLong(id), Float.parseFloat(lat),
-//						Float.parseFloat(lon));
+				double lat = Double.parseDouble(slat);
+				double lon = Double.parseDouble(slon);
+				Coord coord = new Coord(lat, lon);
+				
+				lats.put(Long.parseLong(id), coord.getLatitude());
+				lons.put(Long.parseLong(id), coord.getLongitude());
+
+				details.addToBounds(coord);
 
 			} else if (qName.equals("way")) {
-				mode = MODE_WAY;
-				currentWay = new Way();
-			}
-		} else if (mode == MODE_NODE) {
-			if (qName.equals("tag")) {
-				String key = attributes.getValue("k");
-				String val = attributes.getValue("v");
-
-				// We only want to create a full node for nodes that are POI's
-				// and not just point of a way.  Only create if it has tags that
-				// are not in a list of ignorables ones such as 'created_by'
-				if (currentNode != null || !key.equals("created_by")) {
-
-					currentNode.addTag(key, val);
-                }
-			}
-
-		} else if (mode == MODE_WAY) {
-			if (qName.equals("nd")) {
-				long id = Long.parseLong(attributes.getValue("ref"));
-				currentWay.addNode(id);
-			} else if (qName.equals("tag")) {
-				String key = attributes.getValue("k");
-				String val = attributes.getValue("v");
-				currentWay.addTag(key, val);
+				throw new SAXException("end of nodes");
 			}
 		}
 	}
@@ -124,21 +113,16 @@ class OsmXmlHandler extends DefaultHandler {
 		if (mode == MODE_NODE) {
 			if (qName.equals("node")) {
 				mode = 0;
-//				if (currentNode != null)
-//					converter.convertNode(currentNode);
-//				currentNodeId = 0;
-				callbacks.addNode(currentNode);
-				currentNode = null;
 			}
 
-		} else if (mode == MODE_WAY) {
-			if (qName.equals("way")) {
-				mode = 0;
-				currentWay = null;
-				// Process the way.
-//				converter.convertWay(currentWay);
-			}
 		}
+	}
+
+	public SubArea getTotalArea() {
+		SubArea sub = new SubArea(details.getBounds(), lats, lons);
+		lats = null;
+		lons = null;
+		return sub;
 	}
 
 
@@ -146,9 +130,5 @@ class OsmXmlHandler extends DefaultHandler {
 		System.err.println("Error at line " + e.getLineNumber() + ", col "
 				+ e.getColumnNumber());
 		super.fatalError(e);
-	}
-
-	public void setCallbacks(MapCollector dbWriter) {
-		callbacks = dbWriter;
 	}
 }

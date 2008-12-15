@@ -16,21 +16,27 @@
  */
 package uk.me.parabola.splitter;
 
+import uk.me.parabola.mkgmap.reader.osm.Tags;
+
 /**
  * @author Steve Ratcliffe
  */
 public class OsmNode {
 	private long id;
-	private float lat;
-	private float lon;
+	private double lat;
+	private double lon;
+	private Tags tags;
 
 	public OsmNode(String sid, String slat, String slon) {
 		id = Long.parseLong(sid);
-		lat = Float.parseFloat(slat);
-		lon = Float.parseFloat(slon);
+		lat = Double.parseDouble(slat);
+		lon = Double.parseDouble(slon);
 	}
 
 	public void addTag(String key, String val) {
+		if (tags == null)
+			tags = new Tags();
+		tags.put(key, val);
 	}
 
 	public long getId() {
