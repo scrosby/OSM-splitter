@@ -17,8 +17,9 @@
 package uk.me.parabola.splitter;
 
 import uk.me.parabola.imgfmt.app.Area;
+import uk.me.parabola.imgfmt.app.Coord;
 
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 
 /**
  * @author Steve Ratcliffe
@@ -26,51 +27,46 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 public class SubArea {
 	private final Area bounds;
 
-	private Long2IntOpenHashMap lats;
-	private Long2IntOpenHashMap lons;
+	private Int2ReferenceOpenHashMap<Coord> coords;
 	private int size;
 
-	public SubArea(Area bounds, Long2IntOpenHashMap lats, Long2IntOpenHashMap lons) {
+	public SubArea(Area bounds, Int2ReferenceOpenHashMap<Coord> coords) {
 		this.bounds = bounds;
-		this.lats = lats;
-		this.lons = lons;
+		this.coords = coords;
 	}
 
-	public SubArea(Area area) {
+	public SubArea(Area area, int sizehint) {
 		this.bounds = area;
+		coords = new Int2ReferenceOpenHashMap<Coord>(sizehint, 0.8f);
+		coords.growthFactor(8);
 	}
 
 	public void clear() {
-		if (lats != null)
-			size = lats.size();
-		lats = null;
-		lons = null;
+		if (coords != null)
+			size = coords.size();
+		coords = null;
 	}
 
 	public Area getBounds() {
 		return bounds;
 	}
 
-	public Long2IntOpenHashMap getLats() {
-		return lats;
+	public Int2ReferenceOpenHashMap<Coord> getCoords() {
+		return coords;
 	}
 
-	public void setLats(Long2IntOpenHashMap lats) {
-		this.lats = lats;
-	}
-
-	public Long2IntOpenHashMap getLons() {
-		return lons;
-	}
-
-	public void setLons(Long2IntOpenHashMap lons) {
-		this.lons = lons;
+	public void setCoords(Int2ReferenceOpenHashMap<Coord> coords) {
+		this.coords = coords;
 	}
 
 	public int getSize() {
-		if (lats != null)
-			return lats.size();
+		if (coords != null)
+			return coords.size();
 		else
 			return size;
+	}
+
+	public void put(int key, Coord co) {
+		coords.put(key, co);
 	}
 }

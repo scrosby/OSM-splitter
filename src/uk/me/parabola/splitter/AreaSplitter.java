@@ -20,9 +20,10 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 
 import uk.me.parabola.imgfmt.app.Area;
+import uk.me.parabola.imgfmt.app.Coord;
 
-import it.unimi.dsi.fastutil.longs.Long2IntMap;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
@@ -43,11 +44,11 @@ public class AreaSplitter {
 			ListIterator<SubArea> it = l.listIterator();
 			while (it.hasNext()) {
 				SubArea workarea = it.next();
-				Long2IntOpenHashMap map = workarea.getLats();
+				Int2ReferenceOpenHashMap map = workarea.getCoords();
 				if (map == null)
 					continue;
 				int size = map.size();
-				System.out.println("size is " + size + ", " + workarea.getLons().size());
+				System.out.println("size is " + size + ", " + workarea.getSize());
 				if (size < max) {
 					workarea.clear();
 					continue;
@@ -89,43 +90,26 @@ public class AreaSplitter {
 		int size = base.getSize()/2;
 		if (size < 1000)
 			size = 1000;
-		SubArea a1 = new SubArea(b1);
-		Long2IntOpenHashMap a1lats = new Long2IntOpenHashMap(size, 0.8f);
-		Long2IntOpenHashMap a1lons = new Long2IntOpenHashMap(size, 0.8f);
-		a1lats.growthFactor(4);
-		a1lons.growthFactor(4);
-		a1.setLats(a1lats);
-		a1.setLons(a1lons);
 
-		SubArea a2 = new SubArea(b2);
-		Long2IntOpenHashMap a2lats = new Long2IntOpenHashMap(size, 0.8f);
-		Long2IntOpenHashMap a2lons = new Long2IntOpenHashMap(size, 0.8f);
-		a2lats.growthFactor(4);
-		a2lons.growthFactor(4);
-		a2.setLats(a2lats);
-		a2.setLons(a2lons);
+		SubArea a1 = new SubArea(b1, size);
+		SubArea a2 = new SubArea(b2, size);
 
-		Long2IntOpenHashMap baseLons = base.getLons();
-		Long2IntOpenHashMap baseLats = base.getLats();
+		Int2ReferenceOpenHashMap<Coord> baseLats = base.getCoords();
 
-		Long2IntMap.FastEntrySet fastEntrySet = baseLons.long2IntEntrySet();
-		ObjectIterator<Long2IntMap.Entry> it = fastEntrySet.fastIterator();
+		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = baseLats.int2ReferenceEntrySet();
+		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
 		while (it.hasNext()) {
-			Long2IntMap.Entry entry = it.next();
-			long key = entry.getLongKey();
-			int lon = entry.getIntValue();
-			if (lon > mid) {
-				a1lats.put(key, baseLats.get(key));
-				a1lons.put(key, lon);
+			Int2ReferenceMap.Entry<Coord> entry = it.next();
+			int key = entry.getIntKey();
+			Coord co = entry.getValue();
+			if (co.getLongitude() > mid) {
+				a1.put(key, co);
 			} else {
-				a2lats.put(key, baseLats.get(key));
-				a2lons.put(key, lon);
+				a2.put(key, co);
 			}
 		}
 
-		assert a1lats.size() == a1lons.size();
-		assert a2lats.size() == a2lons.size();
-		System.out.println("lat size " + a1lats.size() +", " + a2lats.size());
+		System.out.println("lat size " + a1.getSize() +", " + a2.getSize());
 		return new SubArea[]{a1, a2};
 	}
 
@@ -139,43 +123,29 @@ public class AreaSplitter {
 		Area b1 = new Area(mid, bounds.getMinLong(), bounds.getMaxLat(), bounds.getMaxLong());
 		Area b2 = new Area(bounds.getMinLat(), bounds.getMinLong(), mid, bounds.getMaxLong());
 
-		SubArea a1 = new SubArea(b1);
-		Long2IntOpenHashMap a1lats = new Long2IntOpenHashMap();
-		Long2IntOpenHashMap a1lons = new Long2IntOpenHashMap();
-		a1.setLats(a1lats);
-		a1.setLons(a1lons);
+		int size = base.getSize()/2;
+		if (size < 1000)
+			size = 1000;
 
-		SubArea a2 = new SubArea(b2);
-		Long2IntOpenHashMap a2lats = new Long2IntOpenHashMap();
-		Long2IntOpenHashMap a2lons = new Long2IntOpenHashMap();
-		a2.setLats(a2lats);
-		a2.setLons(a2lons);
+		SubArea a1 = new SubArea(b1, size);
+		SubArea a2 = new SubArea(b2, size);
 
-		Long2IntOpenHashMap baseLons = base.getLons();
-		Long2IntOpenHashMap baseLats = base.getLats();
+		Int2ReferenceOpenHashMap<Coord> baseLats = base.getCoords();
 
-		Long2IntMap.FastEntrySet fastEntrySet = baseLats.long2IntEntrySet();
-		ObjectIterator<Long2IntMap.Entry> it = fastEntrySet.fastIterator();
+		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = baseLats.int2ReferenceEntrySet();
+		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
 		while (it.hasNext()) {
-			Long2IntMap.Entry entry = it.next();
-			long key = entry.getLongKey();
-			int lat = entry.getIntValue();
-//			System.out.printf("lat %d, mid %d\n", lat, mid);
-			if (lat > mid) {
-//				System.out.println("top");
-				a1lats.put(key, lat);
-				a1lons.put(key, baseLons.get(key));
+			Int2ReferenceMap.Entry<Coord> entry = it.next();
+			int key = entry.getIntKey();
+			Coord co = entry.getValue();
+			if (co.getLatitude() > mid) {
+				a1.put(key, co);
 			} else {
-//				System.out.println("bottom");
-				a2lats.put(key, lat);
-				a2lons.put(key, baseLons.get(key));
+				a2.put(key, co);
 			}
 		}
 
-		assert a1lats.size() == a1lons.size();
-		assert a2lats.size() == a2lons.size();
-		System.out.println("lat size " + a1lats.size() +", " + a2lats.size());
-		System.out.println("lon size " + a1lons.size() +", " + a2lons.size());
+		System.out.println("lat size " + a1.getSize() +", " + a2.getSize());
 
 		return new SubArea[]{a1, a2};
 	}

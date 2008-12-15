@@ -19,7 +19,7 @@ package uk.me.parabola.splitter;
 import uk.me.parabola.imgfmt.app.Coord;
 import uk.me.parabola.mkgmap.general.MapDetails;
 
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -36,14 +36,12 @@ class OsmXmlHandler extends DefaultHandler {
 
 	private static final int MODE_NODE = 1;
 
-	private Long2IntOpenHashMap lats = new Long2IntOpenHashMap(100000, 0.8f);
-	private Long2IntOpenHashMap lons = new Long2IntOpenHashMap(100000, 0.8f);
+	private Int2ReferenceOpenHashMap<Coord> coords = new Int2ReferenceOpenHashMap<Coord>(500000, 0.8f);
 
 	private MapDetails details = new MapDetails();
 
 	OsmXmlHandler() {
-		lats.growthFactor(8);
-		lons.growthFactor(8);
+		coords.growthFactor(8);
 	}
 
 	/**
@@ -81,8 +79,7 @@ class OsmXmlHandler extends DefaultHandler {
 				double lon = Double.parseDouble(slon);
 				Coord coord = new Coord(lat, lon);
 				
-				lats.put(Long.parseLong(id), coord.getLatitude());
-				lons.put(Long.parseLong(id), coord.getLongitude());
+				coords.put(Integer.parseInt(id), coord);
 
 				details.addToBounds(coord);
 
@@ -114,14 +111,12 @@ class OsmXmlHandler extends DefaultHandler {
 			if (qName.equals("node")) {
 				mode = 0;
 			}
-
 		}
 	}
 
 	public SubArea getTotalArea() {
-		SubArea sub = new SubArea(details.getBounds(), lats, lons);
-		lats = null;
-		lons = null;
+		SubArea sub = new SubArea(details.getBounds(), coords);
+		coords = null;
 		return sub;
 	}
 
