@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Formatter;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import uk.me.parabola.imgfmt.Utils;
@@ -31,6 +32,8 @@ import uk.me.parabola.imgfmt.app.Coord;
 import uk.me.parabola.log.Logger;
 
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
  * @author Steve Ratcliffe
@@ -41,7 +44,6 @@ public class SubArea {
 	private final Area bounds;
 
 	private Area extendedBounds;
-	private int mapid;
 	private BufferedWriter writer;
 
 	private Int2ReferenceOpenHashMap<Coord> coords;
@@ -84,7 +86,7 @@ public class SubArea {
 	}
 
 	public void initForWrite(int mapid, int extra) {
-		this.mapid = mapid;
+		int mapid1 = mapid;
 		extendedBounds = new Area(bounds.getMinLat() - extra,
 				bounds.getMinLong() - extra,
 				bounds.getMaxLat() + extra,
@@ -134,9 +136,57 @@ public class SubArea {
 			writer.append(node.getStringLat());
 			writer.append("' lon='");
 			writer.append(node.getStringLon());
-			writer.append("'/>\n");
+			if (node.hasTags()) {
+				writer.append("'>\n");
+				writeTags(node);
+				writer.append("</node>\n");
+			} else {
+				writer.append("'/>\n");
+			}
 			return true;
 		}
 		return false;
+	}
+
+	public void write(StringWay way) throws IOException {
+		writer.append("<way id='");
+		writer.append(way.getStringId());
+		writer.append("'>\n");
+		List<String> refs = way.getRefs();
+		for (String ref : refs) {
+			writer.append("<nd ref='");
+			writer.append(ref);
+			writer.append("'/>\n");
+		}
+
+		if (way.hasTags())
+			writeTags(way);
+		writer.append("</way>\n");
+	}
+
+	private void writeTags(Element element) throws IOException {
+		ObjectIterator<Object2ObjectMap.Entry<String,String>> it = element.tagsIterator();
+		while (it.hasNext()) {
+			Object2ObjectMap.Entry<String,String> entry = it.next();
+			writer.append("<tag k='");
+			writer.append(entry.getKey());
+			writer.append("' v='");
+			writeAttribute(entry.getValue());
+//			writer.append(s);
+			writer.append("'/>\n");
+		}
+	}
+
+	private void writeAttribute(String value) throws IOException {
+		for (char c : value.toCharArray()) {
+			if (c == '\'')
+				writer.append("&apos;");
+			else if (c == '&') {
+				writer.append("&amp;");
+			} else if (c == '<') {
+				writer.append("&lt;");
+			} else
+				writer.append(c);
+		}
 	}
 }

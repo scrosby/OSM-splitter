@@ -16,35 +16,24 @@
  */
 package uk.me.parabola.splitter;
 
-import uk.me.parabola.imgfmt.app.Coord;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * A node where the originally read strings are also saved so that we can
- * easily print them out again.
- *
  * @author Steve Ratcliffe
  */
-public class StringNode extends Element {
-	private Coord coord;
-	private String stringLat;
-	private String stringLon;
+public class StringWay extends Element {
+	private List<String> refs = new ArrayList<String>();
 
-	public StringNode(Coord co, String stringId, String stringLat, String stringLon) {
+	public StringWay(String stringId) {
 		super(stringId);
-		coord = co;
-		this.stringLat = stringLat;
-		this.stringLon = stringLon;
 	}
 
-	public Coord getLocation() {
-		return coord;
+	public void addRef(String ref) {
+		refs.add(ref);
 	}
 
-	public String getStringLat() {
-		return stringLat;
-	}
-
-	public String getStringLon() {
-		return stringLon;
+	public List<String> getRefs() {
+		return refs;
 	}
 }

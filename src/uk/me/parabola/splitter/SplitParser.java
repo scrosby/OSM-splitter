@@ -41,21 +41,25 @@ class SplitParser extends DefaultHandler {
 
 	private static final int MODE_NODE = 1;
 	private static final int MODE_WAY = 2;
-	private static final int MODE_RELATION = 3;
+//	private static final int MODE_RELATION = 3;
 
-	private Int2ReferenceOpenHashMap<SubArea[]> coords = new Int2ReferenceOpenHashMap<SubArea[]>(500000, 0.8f);
-	private ReferenceArraySet<SubArea> matching = new ReferenceArraySet<SubArea>(4);
-
-//	private Int2ObjectOpenHashMap<Coord> coords = new Int2ReferenceOpenHashMap<Coord>(500000, 0.8f);
+	private Int2ReferenceOpenHashMap<ReferenceArraySet<SubArea>> coords = new Int2ReferenceOpenHashMap<ReferenceArraySet<SubArea>>(500000, 0.8f);
+	private Int2ReferenceOpenHashMap<ReferenceArraySet> ways = new Int2ReferenceOpenHashMap<ReferenceArraySet>(500000, 0.8f);
 
 	private MapDetails details = new MapDetails();
 
-	private StringNode currentNode;
 	private List<SubArea> areas;
+
+	private StringNode currentNode;
+	private ReferenceArraySet<SubArea> currentNodeAreaSet;
+
+	private StringWay currentWay;
+	private ReferenceArraySet<SubArea> currentWayAreaSet;
 
 	SplitParser(List<SubArea> areas) {
 		this.areas = areas;
 		coords.growthFactor(8);
+		ways.growthFactor(8);
 	}
 
 	/**
@@ -93,13 +97,31 @@ class SplitParser extends DefaultHandler {
 				double lon = Double.parseDouble(slon);
 				Coord coord = new Coord(lat, lon);
 
-				currentNode = new StringNode(Long.parseLong(id), coord, id, slat, slon);
-//				coords.put(Integer.parseInt(id), coord);
-
-//				details.addToBounds(coord);
+				currentNode = new StringNode(coord, id, slat, slon);
+				currentNodeAreaSet = new ReferenceArraySet<SubArea>(6);
+				coords.put(Integer.parseInt(id), currentNodeAreaSet);
 
 			} else if (qName.equals("way")) {
-//				throw new SAXException("end of nodes");
+				mode = MODE_WAY;
+				String id = attributes.getValue("id");
+				currentWay = new StringWay(id);
+				currentWayAreaSet = new ReferenceArraySet<SubArea>(6);
+				ways.put(Integer.parseInt(id), currentWayAreaSet);
+			}
+		} else if (mode == MODE_NODE) {
+			if (qName.equals("tag")) {
+				currentNode.addTag(attributes.getValue("k"), attributes.getValue("v"));
+			}
+		} else if (mode == MODE_WAY) {
+			if (qName.equals("nd")) {
+				String sid = attributes.getValue("ref");
+				ReferenceArraySet<SubArea> set = coords.get(Integer.parseInt(sid));
+				for (SubArea a : set)
+					currentWayAreaSet.add(a);
+				currentWay.addRef(sid);
+			} else if (qName.equals("tag")) {
+				currentWay.addTag(attributes.getValue("k"),
+						attributes.getValue("v"));
 			}
 		}
 	}
@@ -131,15 +153,29 @@ class SplitParser extends DefaultHandler {
 					throw new SAXException("failed to write", e);
 				}
 			}
+		} else if (mode == MODE_WAY) {
+			if (qName.equals("way")) {
+				mode = 0;
+				try {
+					writeWay(currentWay);
+				} catch (IOException e) {
+					throw new SAXException("failed to write way", e);
+				}
+			}
+		}
+	}
+
+	private void writeWay(StringWay way) throws IOException {
+		for (SubArea a : currentWayAreaSet) {
+			a.write(way);
 		}
 	}
 
 	private void writeNode(StringNode node) throws IOException {
 		for (SubArea a : areas) {
 			boolean found = a.write(node);
-			if (found) {
-				matching.add(a);
-			}
+			if (found)
+				currentNodeAreaSet.add(a);
 		}
 	}
 

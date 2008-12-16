@@ -68,7 +68,7 @@ public class Main {
 		} catch (SAXException e) {
 			SubArea totalArea = xmlHandler.getTotalArea();
 			AreaSplitter splitter = new AreaSplitter();
-			List<SubArea> areaList = splitter.split(totalArea, 300000);
+			List<SubArea> areaList = splitter.split(totalArea, 1500000);
 
 			writeAreas(areaList, filename);
 		}
