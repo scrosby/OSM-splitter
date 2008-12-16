@@ -27,11 +27,12 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * Reads and parses the OSM XML format in a way that is useful for the splitter.
+ * Reads and parses the OSM XML format for the initial dividing up of the
+ * areas.
  *
  * @author Steve Ratcliffe
  */
-class OsmXmlHandler extends DefaultHandler {
+class DivisionParser extends DefaultHandler {
 	private int mode;
 
 	private static final int MODE_NODE = 1;
@@ -40,7 +41,7 @@ class OsmXmlHandler extends DefaultHandler {
 
 	private MapDetails details = new MapDetails();
 
-	OsmXmlHandler() {
+	DivisionParser() {
 		coords.growthFactor(8);
 	}
 

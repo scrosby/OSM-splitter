@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -60,15 +61,36 @@ public class Main {
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
 
-		OsmXmlHandler xmlHandler = new OsmXmlHandler();
-//		xmlHandler.setCallbacks(null);
+		DivisionParser xmlHandler = new DivisionParser();
 
 		try {
 			parser.parse(is, xmlHandler);
 		} catch (SAXException e) {
 			SubArea totalArea = xmlHandler.getTotalArea();
 			AreaSplitter splitter = new AreaSplitter();
-			splitter.split(totalArea, 1000000);
+			List<SubArea> areaList = splitter.split(totalArea, 300000);
+
+			writeAreas(areaList, filename);
+		}
+	}
+
+	private void writeAreas(List<SubArea> areaList, String filename) throws
+			IOException, SAXException, ParserConfigurationException
+	{
+		int mapid = 1;
+		for (SubArea a : areaList) 
+			a.initForWrite(mapid++, 1000);
+
+		try {
+			InputStream is = openFile(filename);
+			SAXParserFactory parserFactory = SAXParserFactory.newInstance();
+			SAXParser parser = parserFactory.newSAXParser();
+
+			SplitParser xmlHandler = new SplitParser(areaList);
+			parser.parse(is, xmlHandler);
+		} finally {
+			for (SubArea a : areaList)
+				a.finishWrite();
 		}
 
 	}

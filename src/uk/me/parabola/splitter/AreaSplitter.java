@@ -17,6 +17,7 @@
 package uk.me.parabola.splitter;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 
 import uk.me.parabola.imgfmt.app.Area;
@@ -27,11 +28,13 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
+ * Used to split the SubArea's down into roughly sized pieces.
+ * 
  * @author Steve Ratcliffe
  */
 public class AreaSplitter {
 
-	public void split(SubArea area, int max) {
+	public List<SubArea> split(SubArea area, int max) {
 		LinkedList<SubArea> l = new LinkedList<SubArea>();
 
 		l.add(area);
@@ -75,6 +78,7 @@ public class AreaSplitter {
 		for (SubArea a : l) {
 			System.out.println("a " + a.getBounds() + ", size=" + a.getSize());
 		}
+		return l;
 	}
 
 	private SubArea[] splitHoriz(SubArea base) {
@@ -96,9 +100,9 @@ public class AreaSplitter {
 			assert entry.getValue().getLongitude() >= left && entry.getValue().getLongitude() <= right : entry.getValue().getLongitude();
 			count++;
 			total += entry.getValue().getLongitude() - left + 1;
-			assert total < 0x3fffffff && total >= 0 : total;
+//			assert total < 0x3fffffff && total >= 0 : total;
 		}
-		int mid = (int) (left + total / count);
+		int mid = limit(left, right, total / count);
 		System.out.println("mid = " + mid + ", tot=" + total + ", count=" + count);
 
 		System.out.println("in " + bounds);
@@ -148,9 +152,9 @@ public class AreaSplitter {
 			assert entry.getValue().getLatitude() >= bot && entry.getValue().getLongitude() <= top;
 			count++;
 			total += entry.getValue().getLatitude() - bot;
-			assert total < 0x3fffffff && total >= 0;
+//			assert total < 0x3fffffff && total >= 0;
 		}
-		int mid = (int) (bot + total / count);
+		int mid = limit(bot, top, total / count);
 		System.out.println("bot = " + bot);
 		System.out.println("top = " + top);
 		System.out.println("mid = " + mid);
@@ -183,5 +187,15 @@ public class AreaSplitter {
 		System.out.println("split sizes " + a1.getSize() +", " + a2.getSize());
 
 		return new SubArea[]{a1, a2};
+	}
+
+	private int limit(int first, int second, long calcOffset) {
+		int mid = first + (int) calcOffset;
+		int limitoff = (second - first) / 5;
+		if (mid - first < limitoff)
+			mid = first + limitoff;
+		else if (second - mid < limitoff)
+			mid = second - limitoff;
+		return mid;
 	}
 }
