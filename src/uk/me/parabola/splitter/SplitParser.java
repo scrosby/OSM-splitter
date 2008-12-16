@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.List;
 
 import uk.me.parabola.imgfmt.app.Coord;
-import uk.me.parabola.mkgmap.general.MapDetails;
 
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceArraySet;
@@ -45,8 +44,6 @@ class SplitParser extends DefaultHandler {
 
 	private Int2ReferenceOpenHashMap<ReferenceArraySet<SubArea>> coords = new Int2ReferenceOpenHashMap<ReferenceArraySet<SubArea>>(500000, 0.8f);
 	private Int2ReferenceOpenHashMap<ReferenceArraySet> ways = new Int2ReferenceOpenHashMap<ReferenceArraySet>(500000, 0.8f);
-
-	private MapDetails details = new MapDetails();
 
 	private List<SubArea> areas;
 

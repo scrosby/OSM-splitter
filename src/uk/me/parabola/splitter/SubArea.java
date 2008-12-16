@@ -86,7 +86,6 @@ public class SubArea {
 	}
 
 	public void initForWrite(int mapid, int extra) {
-		int mapid1 = mapid;
 		extendedBounds = new Area(bounds.getMinLat() - extra,
 				bounds.getMinLong() - extra,
 				bounds.getMaxLat() + extra,
@@ -172,7 +171,6 @@ public class SubArea {
 			writer.append(entry.getKey());
 			writer.append("' v='");
 			writeAttribute(entry.getValue());
-//			writer.append(s);
 			writer.append("'/>\n");
 		}
 	}
