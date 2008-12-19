@@ -20,11 +20,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
+import uk.me.parabola.imgfmt.Utils;
 import uk.me.parabola.imgfmt.app.Area;
-import uk.me.parabola.imgfmt.app.Coord;
 
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
@@ -47,7 +47,7 @@ public class AreaSplitter {
 			ListIterator<SubArea> it = l.listIterator();
 			while (it.hasNext()) {
 				SubArea workarea = it.next();
-				Int2ReferenceOpenHashMap map = workarea.getCoords();
+				Int2IntOpenHashMap map = workarea.getCoords();
 				if (map == null) {
 					continue;
 				}
@@ -62,7 +62,7 @@ public class AreaSplitter {
 
 				notDone = true;
 				Area bounds = workarea.getBounds();
-				int height = bounds.getHeight();
+				int height = (int) (bounds.getHeight() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
 				int width = bounds.getWidth();
 				SubArea[] sub;
 				if (height > width)
@@ -90,17 +90,17 @@ public class AreaSplitter {
 		System.out.println("left = " + left);
 		System.out.println("right = " + right);
 
-		Int2ReferenceOpenHashMap<Coord> baseCoords = base.getCoords();
+		Int2IntOpenHashMap baseCoords = base.getCoords();
 
-		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = baseCoords.int2ReferenceEntrySet();
-		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
+		Int2IntMap.FastEntrySet fastEntrySet = baseCoords.int2IntEntrySet();
+		ObjectIterator<Int2IntMap.Entry> it = fastEntrySet.fastIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
-			Int2ReferenceMap.Entry<Coord> entry = it.next();
-			assert entry.getValue().getLongitude() >= left && entry.getValue().getLongitude() <= right : entry.getValue().getLongitude();
+			Int2IntMap.Entry entry = it.next();
+			assert extractLongitude(entry.getValue()) >= left && extractLongitude(entry.getValue()) <= right ;
 			count++;
-			total += entry.getValue().getLongitude() - left + 1;
+			total += extractLongitude(entry.getIntValue()) - left + 1;
 		}
 		int mid = limit(left, right, total / count);
 		System.out.println("mid = " + mid + ", tot=" + total + ", count=" + count);
@@ -118,13 +118,13 @@ public class AreaSplitter {
 		SubArea a1 = new SubArea(b1, size);
 		SubArea a2 = new SubArea(b2, size);
 
-		fastEntrySet = baseCoords.int2ReferenceEntrySet();
+		fastEntrySet = baseCoords.int2IntEntrySet();
 		it = fastEntrySet.fastIterator();
 		while (it.hasNext()) {
-			Int2ReferenceMap.Entry<Coord> entry = it.next();
+			Int2IntMap.Entry entry = it.next();
 			int key = entry.getIntKey();
-			Coord co = entry.getValue();
-			if (co.getLongitude() < mid) {
+			int co = entry.getIntValue();
+			if (extractLongitude(co) < mid) {
 				a1.put(key, co);
 			} else {
 				a2.put(key, co);
@@ -135,23 +135,27 @@ public class AreaSplitter {
 		return new SubArea[]{a1, a2};
 	}
 
+	private int extractLongitude(int value) {
+		return (value&0xffff) << 8;
+	}
+
 	private SubArea[] splitVert(SubArea base) {
 		System.out.println("split vert");
 		Area bounds = base.getBounds();
 		int top = bounds.getMaxLat();
 		int bot = bounds.getMinLat();
 
-		Int2ReferenceOpenHashMap<Coord> caseCoords = base.getCoords();
+		Int2IntOpenHashMap caseCoords = base.getCoords();
 
-		Int2ReferenceMap.FastEntrySet<Coord> fastEntrySet = caseCoords.int2ReferenceEntrySet();
-		ObjectIterator<Int2ReferenceMap.Entry<Coord>> it = fastEntrySet.fastIterator();
+		Int2IntMap.FastEntrySet fastEntrySet = caseCoords.int2IntEntrySet();
+		ObjectIterator<Int2IntMap.Entry> it = fastEntrySet.fastIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
-			Int2ReferenceMap.Entry<Coord> entry = it.next();
-			assert entry.getValue().getLatitude() >= bot && entry.getValue().getLongitude() <= top;
+			Int2IntMap.Entry entry = it.next();
+			assert extractLatitude(entry.getValue()) >= bot && extractLongitude(entry.getValue()) <= top;
 			count++;
-			total += entry.getValue().getLatitude() - bot;
+			total += extractLatitude(entry.getIntValue()) - bot;
 		}
 		int mid = limit(bot, top, total / count);
 		System.out.println("bot = " + bot);
@@ -170,13 +174,13 @@ public class AreaSplitter {
 
 		caseCoords = base.getCoords();
 
-		fastEntrySet = caseCoords.int2ReferenceEntrySet();
+		fastEntrySet = caseCoords.int2IntEntrySet();
 		it = fastEntrySet.fastIterator();
 		while (it.hasNext()) {
-			Int2ReferenceMap.Entry<Coord> entry = it.next();
+			Int2IntMap.Entry entry = it.next();
 			int key = entry.getIntKey();
-			Coord co = entry.getValue();
-			if (co.getLatitude() <= mid) {
+			int co = entry.getIntValue();
+			if (extractLatitude(co) <= mid) {
 				a1.put(key, co);
 			} else {
 				a2.put(key, co);
@@ -188,6 +192,10 @@ public class AreaSplitter {
 		return new SubArea[]{a1, a2};
 	}
 
+	private int extractLatitude(Integer value) {
+		return (value >> 8) & 0xffffff;
+	}
+
 	private int limit(int first, int second, long calcOffset) {
 		int mid = first + (int) calcOffset;
 		int limitoff = (second - first) / 5;
@@ -196,9 +204,10 @@ public class AreaSplitter {
 		else if (second - mid < limitoff)
 			mid = second - limitoff;
 
+		// Round to a garmin map unit at the given zoom level.
 		int nmid = (mid + (1 << (SHIFT - 1)));
 		nmid &= ~((1<<SHIFT)-1);
-//		if (nmid < first || n)
+
 		assert nmid >= first && nmid <= second;
 		return nmid;
 	}

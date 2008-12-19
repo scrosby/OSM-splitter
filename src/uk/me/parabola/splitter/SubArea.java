@@ -28,10 +28,9 @@ import java.util.zip.GZIPOutputStream;
 
 import uk.me.parabola.imgfmt.Utils;
 import uk.me.parabola.imgfmt.app.Area;
-import uk.me.parabola.imgfmt.app.Coord;
 import uk.me.parabola.log.Logger;
 
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
@@ -46,17 +45,17 @@ public class SubArea {
 	private Area extendedBounds;
 	private BufferedWriter writer;
 
-	private Int2ReferenceOpenHashMap<Coord> coords;
+	private Int2IntOpenHashMap coords;
 	private int size;
 
-	public SubArea(Area bounds, Int2ReferenceOpenHashMap<Coord> coords) {
+	public SubArea(Area bounds, Int2IntOpenHashMap coords) {
 		this.bounds = bounds;
 		this.coords = coords;
 	}
 
 	public SubArea(Area area, int sizehint) {
 		this.bounds = area;
-		coords = new Int2ReferenceOpenHashMap<Coord>(sizehint, 0.8f);
+		coords = new Int2IntOpenHashMap(sizehint, 0.8f);
 		coords.growthFactor(8);
 	}
 
@@ -70,11 +69,11 @@ public class SubArea {
 		return bounds;
 	}
 
-	public Int2ReferenceOpenHashMap<Coord> getCoords() {
+	public Int2IntOpenHashMap getCoords() {
 		return coords;
 	}
 
-	public void put(int key, Coord co) {
+	public void put(int key, int co) {
 		coords.put(key, co);
 	}
 

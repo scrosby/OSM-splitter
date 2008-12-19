@@ -19,7 +19,7 @@ package uk.me.parabola.splitter;
 import uk.me.parabola.imgfmt.app.Coord;
 import uk.me.parabola.mkgmap.general.MapDetails;
 
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -27,7 +27,7 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * Reads and parses the OSM XML format for the initial dividing up of the
+ * First pass of the OSM file for the initial dividing up of the
  * areas.
  *
  * @author Steve Ratcliffe
@@ -37,7 +37,7 @@ class DivisionParser extends DefaultHandler {
 
 	private static final int MODE_NODE = 1;
 
-	private Int2ReferenceOpenHashMap<Coord> coords = new Int2ReferenceOpenHashMap<Coord>(500000, 0.8f);
+	private Int2IntOpenHashMap coords = new Int2IntOpenHashMap(500000, 0.8f);
 
 	private MapDetails details = new MapDetails();
 
@@ -78,11 +78,18 @@ class DivisionParser extends DefaultHandler {
 
 				double lat = Double.parseDouble(slat);
 				double lon = Double.parseDouble(slon);
-				Coord coord = new Coord(lat, lon);
-				
+				Coord co = new Coord(lat, lon);
+
+				// Since we are rounding areas to fit on a low zoom boundry we
+				// can drop the bottom 8 bits of the lat and lon and then fit
+				// the whole lot into a single int.
+				int glat = co.getLatitude();
+				int glon = co.getLongitude();
+				int coord = ((glat << 8) & 0xffff0000) + (glon >> 8);
+
 				coords.put(Integer.parseInt(id), coord);
 
-				details.addToBounds(coord);
+				details.addToBounds(co);
 
 			} else if (qName.equals("way")) {
 				throw new SAXException("end of nodes");
