@@ -19,7 +19,6 @@ package uk.me.parabola.splitter;
 import uk.me.parabola.imgfmt.app.Coord;
 import uk.me.parabola.mkgmap.general.MapDetails;
 
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -37,13 +36,10 @@ class DivisionParser extends DefaultHandler {
 
 	private static final int MODE_NODE = 1;
 
-	private Int2IntOpenHashMap coords = new Int2IntOpenHashMap(500000, 0.8f);
+	private SplitIntMap coords = new SplitIntMap();
+//	private Int2IntOpenHashMap coords = new Int2IntOpenHashMap(500000, 0.8f);
 
 	private MapDetails details = new MapDetails();
-
-	DivisionParser() {
-		coords.growthFactor(8);
-	}
 
 	/**
 	 * Receive notification of the start of an element.
@@ -85,7 +81,7 @@ class DivisionParser extends DefaultHandler {
 				// the whole lot into a single int.
 				int glat = co.getLatitude();
 				int glon = co.getLongitude();
-				int coord = ((glat << 8) & 0xffff0000) + (glon >> 8);
+				int coord = ((glat << 8) & 0xffff0000) + ((glon >> 8) & 0xffff);
 
 				coords.put(Integer.parseInt(id), coord);
 

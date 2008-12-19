@@ -30,7 +30,6 @@ import uk.me.parabola.imgfmt.Utils;
 import uk.me.parabola.imgfmt.app.Area;
 import uk.me.parabola.log.Logger;
 
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
@@ -45,18 +44,18 @@ public class SubArea {
 	private Area extendedBounds;
 	private BufferedWriter writer;
 
-	private Int2IntOpenHashMap coords;
+	private SplitIntMap coords;
 	private int size;
 
-	public SubArea(Area bounds, Int2IntOpenHashMap coords) {
+	public SubArea(Area bounds, SplitIntMap coords) {
 		this.bounds = bounds;
 		this.coords = coords;
 	}
 
 	public SubArea(Area area, int sizehint) {
 		this.bounds = area;
-		coords = new Int2IntOpenHashMap(sizehint, 0.8f);
-		coords.growthFactor(8);
+		coords = new SplitIntMap();
+//		coords.growthFactor(8);
 	}
 
 	public void clear() {
@@ -69,7 +68,7 @@ public class SubArea {
 		return bounds;
 	}
 
-	public Int2IntOpenHashMap getCoords() {
+	public SplitIntMap getCoords() {
 		return coords;
 	}
 

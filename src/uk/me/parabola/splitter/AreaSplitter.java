@@ -24,7 +24,6 @@ import uk.me.parabola.imgfmt.Utils;
 import uk.me.parabola.imgfmt.app.Area;
 
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
@@ -47,7 +46,7 @@ public class AreaSplitter {
 			ListIterator<SubArea> it = l.listIterator();
 			while (it.hasNext()) {
 				SubArea workarea = it.next();
-				Int2IntOpenHashMap map = workarea.getCoords();
+				SplitIntMap map = workarea.getCoords();
 				if (map == null) {
 					continue;
 				}
@@ -90,10 +89,9 @@ public class AreaSplitter {
 		System.out.println("left = " + left);
 		System.out.println("right = " + right);
 
-		Int2IntOpenHashMap baseCoords = base.getCoords();
+		SplitIntMap baseCoords = base.getCoords();
 
-		Int2IntMap.FastEntrySet fastEntrySet = baseCoords.int2IntEntrySet();
-		ObjectIterator<Int2IntMap.Entry> it = fastEntrySet.fastIterator();
+		ObjectIterator<Int2IntMap.Entry> it = baseCoords.fastIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
@@ -118,8 +116,7 @@ public class AreaSplitter {
 		SubArea a1 = new SubArea(b1, size);
 		SubArea a2 = new SubArea(b2, size);
 
-		fastEntrySet = baseCoords.int2IntEntrySet();
-		it = fastEntrySet.fastIterator();
+		it = baseCoords.fastIterator();
 		while (it.hasNext()) {
 			Int2IntMap.Entry entry = it.next();
 			int key = entry.getIntKey();
@@ -135,20 +132,15 @@ public class AreaSplitter {
 		return new SubArea[]{a1, a2};
 	}
 
-	private int extractLongitude(int value) {
-		return (value&0xffff) << 8;
-	}
-
 	private SubArea[] splitVert(SubArea base) {
 		System.out.println("split vert");
 		Area bounds = base.getBounds();
 		int top = bounds.getMaxLat();
 		int bot = bounds.getMinLat();
 
-		Int2IntOpenHashMap caseCoords = base.getCoords();
+		SplitIntMap caseCoords = base.getCoords();
 
-		Int2IntMap.FastEntrySet fastEntrySet = caseCoords.int2IntEntrySet();
-		ObjectIterator<Int2IntMap.Entry> it = fastEntrySet.fastIterator();
+		ObjectIterator<Int2IntMap.Entry> it = caseCoords.fastIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
@@ -174,8 +166,7 @@ public class AreaSplitter {
 
 		caseCoords = base.getCoords();
 
-		fastEntrySet = caseCoords.int2IntEntrySet();
-		it = fastEntrySet.fastIterator();
+		it = caseCoords.fastIterator();
 		while (it.hasNext()) {
 			Int2IntMap.Entry entry = it.next();
 			int key = entry.getIntKey();
@@ -193,7 +184,14 @@ public class AreaSplitter {
 	}
 
 	private int extractLatitude(Integer value) {
-		return (value >> 8) & 0xffffff;
+		return ((value & 0xffff0000) >> 8);
+	}
+
+	private int extractLongitude(int value) {
+		int lon = value & 0xffff;
+		if ((lon & 0x8000) != 0)
+			lon |= 0xffff0000;
+		return lon << 8;
 	}
 
 	private int limit(int first, int second, long calcOffset) {
