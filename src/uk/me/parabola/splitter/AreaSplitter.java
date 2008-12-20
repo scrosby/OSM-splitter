@@ -16,15 +16,13 @@
  */
 package uk.me.parabola.splitter;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import uk.me.parabola.imgfmt.Utils;
 import uk.me.parabola.imgfmt.app.Area;
 
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import java.util.LinkedList;
+import java.util.ListIterator;
 
 /**
  * Used to split the SubArea's down into roughly sized pieces.
@@ -34,7 +32,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 public class AreaSplitter {
 	private static final int SHIFT = 11;
 
-	public List<SubArea> split(SubArea area, int max) {
+	public SubArea[] split(SubArea area, int max) {
 		LinkedList<SubArea> l = new LinkedList<SubArea>();
 
 		l.add(area);
@@ -61,8 +59,8 @@ public class AreaSplitter {
 
 				notDone = true;
 				Area bounds = workarea.getBounds();
-				int height = (int) (bounds.getHeight() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
-				int width = bounds.getWidth();
+				int height = bounds.getHeight();
+				int width = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
 				SubArea[] sub;
 				if (height > width)
 					sub = splitVert(workarea);
@@ -75,10 +73,10 @@ public class AreaSplitter {
 			}
 		}
 
-		for (SubArea a : l) {
+		for (SubArea a : l) 
 			System.out.println("a " + a.getBounds() + ", size=" + a.getSize());
-		}
-		return l;
+
+		return l.toArray(new SubArea[l.size()]);
 	}
 
 	private SubArea[] splitHoriz(SubArea base) {
@@ -96,9 +94,10 @@ public class AreaSplitter {
 		long total = 0;
 		while (it.hasNext()) {
 			Int2IntMap.Entry entry = it.next();
-			assert extractLongitude(entry.getValue()) >= left && extractLongitude(entry.getValue()) <= right ;
+			int lon = extractLongitude(entry.getIntValue());
+			assert lon >= left && lon <= right : lon;
 			count++;
-			total += extractLongitude(entry.getIntValue()) - left + 1;
+			total += lon - left + 1;
 		}
 		int mid = limit(left, right, total / count);
 		System.out.println("mid = " + mid + ", tot=" + total + ", count=" + count);
@@ -116,7 +115,7 @@ public class AreaSplitter {
 		SubArea a1 = new SubArea(b1, size);
 		SubArea a2 = new SubArea(b2, size);
 
-		it = baseCoords.fastIterator();
+		it = baseCoords.fastDeletingIterator();
 		while (it.hasNext()) {
 			Int2IntMap.Entry entry = it.next();
 			int key = entry.getIntKey();
@@ -145,9 +144,10 @@ public class AreaSplitter {
 		long total = 0;
 		while (it.hasNext()) {
 			Int2IntMap.Entry entry = it.next();
-			assert extractLatitude(entry.getValue()) >= bot && extractLongitude(entry.getValue()) <= top;
+			int lat = extractLatitude(entry.getIntValue());
+			assert lat >= bot && extractLongitude(entry.getIntValue()) <= top : lat;
 			count++;
-			total += extractLatitude(entry.getIntValue()) - bot;
+			total += lat - bot;
 		}
 		int mid = limit(bot, top, total / count);
 		System.out.println("bot = " + bot);
@@ -166,7 +166,7 @@ public class AreaSplitter {
 
 		caseCoords = base.getCoords();
 
-		it = caseCoords.fastIterator();
+		it = caseCoords.fastDeletingIterator();
 		while (it.hasNext()) {
 			Int2IntMap.Entry entry = it.next();
 			int key = entry.getIntKey();

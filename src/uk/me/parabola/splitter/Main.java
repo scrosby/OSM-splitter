@@ -16,21 +16,23 @@
  */
 package uk.me.parabola.splitter;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.zip.GZIPInputStream;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
-import org.xml.sax.SAXException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 
 
 /**
+ * Splitter for OSM files with the purpose of providing input files for mkgmap.
+ *
+ * The input file is split so that no piece has more than a given number of nodes in it.
+ *
  * @author Steve Ratcliffe
  */
 public class Main {
@@ -41,7 +43,6 @@ public class Main {
 			String filename = args[0];
 			System.out.println("Reading file " + filename);
 			m.readFile(filename);
-//			m.readFile("/opt/data/planet-071010.osm");
 		} catch (IOException e) {
 			System.err.println("Error opening or reading file " + e);
 		} catch (SAXException e) {
@@ -50,8 +51,7 @@ public class Main {
 			e.printStackTrace();
 		}
 
-		System.out.println(
-				"Total time " + (System.currentTimeMillis() - start)/1000 + "s");
+		System.out.println("Total time " + (System.currentTimeMillis() - start)/1000 + "s");
 	}
 
 	private void readFile(String filename) throws IOException,
@@ -68,13 +68,13 @@ public class Main {
 		} catch (SAXException e) {
 			SubArea totalArea = xmlHandler.getTotalArea();
 			AreaSplitter splitter = new AreaSplitter();
-			List<SubArea> areaList = splitter.split(totalArea, 1500000);
+			SubArea[] areaList = splitter.split(totalArea, 1500000);
 
 			writeAreas(areaList, filename);
 		}
 	}
 
-	private void writeAreas(List<SubArea> areaList, String filename) throws
+	private void writeAreas(SubArea[] areaList, String filename) throws
 			IOException, SAXException, ParserConfigurationException
 	{
 		int mapid = 1;

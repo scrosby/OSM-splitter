@@ -31,6 +31,10 @@ public class Element {
 		this.stringId = stringId;
 	}
 
+	public int getId() {
+		return Integer.parseInt(stringId);
+	}
+	
 	public void addTag(String key, String value) {
 		if (key.equals("created_by"))
 			return;

@@ -21,6 +21,14 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
+ * An int/int map that is split into several smaller maps.  This is to avoid the problem where
+ * rehashing a map temporarily consumes twice as much memory as is actually required.
+ * We only ever have to rehash one of the sub maps at a time and therefore much less
+ * temporary space is required.
+ *
+ * It is all a balance though, there is an overhead in each map because of the load factor.
+ * Also it is going to be slower overall.  So splitting into 4 seems about right.
+ * 
  * @author Steve Ratcliffe
  */
 public class SplitIntMap {
@@ -29,6 +37,8 @@ public class SplitIntMap {
 
 	private static final int INIT_CAP = 100000;
 	private static final float LOAD = 0.9f;
+
+	private int size;
 
 	private Int2IntOpenHashMap[] maps = new Int2IntOpenHashMap[NMAPS];
 
@@ -44,7 +54,14 @@ public class SplitIntMap {
 		maps[key & MASK].put(key, value);
 	}
 
+	public int get(int key) {
+		return maps[key & MASK].get(key);
+	}
+
 	public int size() {
+		if (this.size != 0)
+			return size;
+
 		int size = 0;
 		for (int i = 0; i < NMAPS; i++) {
 			size += maps[i].size();
@@ -52,27 +69,68 @@ public class SplitIntMap {
 		return size;
 	}
 
+	private void fixSize() {
+		this.size = size();
+	}
+
 	public ObjectIterator<Int2IntMap.Entry> fastIterator() {
 		return new NormalObjectIterator();
 	}
 
+	/**
+	 * The deleting iterator takes case of the case where you are transfering the entries from
+	 * one map to another.  Once they are read, they are no longer needed and so the map
+	 * can be freed.  This avoids avoids using double memory when splitting the areas.
+	 * @return
+	 */
+	public ObjectIterator<Int2IntMap.Entry> fastDeletingIterator() {
+		return new NormalObjectIterator(true);
+	}
+
+	/**
+	 * Trim the map down to its minimum size.  This can be used when we are not going to
+	 * add to the map any more to reduce the overhead of having serveral sub-maps.
+	 */
+	public void trim() {
+		for (int i = 0; i < NMAPS; i++) {
+			maps[i].trim();
+		}
+	}
+
+	/**
+	 * Iterates over all the sub-maps.
+	 */
 	private class NormalObjectIterator implements ObjectIterator<Int2IntMap.Entry> {
-		private Int2IntMap.Entry entry;
+
+		private boolean deleteAfter;
 
 		private ObjectIterator[] iterators = new ObjectIterator[NMAPS];
 
 		private int currentMap;
 
-		private NormalObjectIterator() {
+		private NormalObjectIterator(boolean deleteAfter) {
+			if (deleteAfter)
+				fixSize();
+			
+			this.deleteAfter = deleteAfter;
 			for (int i = 0; i < NMAPS; i++) {
 				iterators[i] = maps[i].int2IntEntrySet().fastIterator();
 			}
+		}
+
+		private NormalObjectIterator() {
+			this(false);
 		}
 
 		public int skip(int n) {
 			throw new UnsupportedOperationException();
 		}
 
+		/**
+		 * Note that you have to call this for the call to next() to be correct
+		 * and so it doesn' properly follow the contract for hasNext() on the
+		 * regular Iterator.
+		 */
 		public boolean hasNext() {
 			// All done
 			if (currentMap >= NMAPS)
@@ -83,6 +141,10 @@ public class SplitIntMap {
 				return true;
 
 			// Else step to the next one and try it
+			if (deleteAfter) {
+				iterators[currentMap] = null;
+				maps[currentMap] = null;
+			}
 			currentMap++;
 			return hasNext();
 		}

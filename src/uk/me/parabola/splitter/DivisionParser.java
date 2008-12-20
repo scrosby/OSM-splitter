@@ -16,14 +16,14 @@
  */
 package uk.me.parabola.splitter;
 
-import uk.me.parabola.imgfmt.app.Coord;
-import uk.me.parabola.mkgmap.general.MapDetails;
-
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
+import uk.me.parabola.imgfmt.app.Area;
+import uk.me.parabola.imgfmt.app.Coord;
+import uk.me.parabola.mkgmap.general.MapDetails;
 
 /**
  * First pass of the OSM file for the initial dividing up of the
@@ -34,11 +34,11 @@ import org.xml.sax.helpers.DefaultHandler;
 class DivisionParser extends DefaultHandler {
 	private int mode;
 
+	private static final int SHIFT = 11;
+
 	private static final int MODE_NODE = 1;
 
 	private SplitIntMap coords = new SplitIntMap();
-//	private Int2IntOpenHashMap coords = new Int2IntOpenHashMap(500000, 0.8f);
-
 	private MapDetails details = new MapDetails();
 
 	/**
@@ -119,9 +119,33 @@ class DivisionParser extends DefaultHandler {
 	}
 
 	public SubArea getTotalArea() {
-		SubArea sub = new SubArea(details.getBounds(), coords);
+		Area bounds = round(details.getBounds());
+		SubArea sub = new SubArea(bounds, coords);
 		coords = null;
 		return sub;
+	}
+
+	private Area round(Area b) {
+		return new Area(roundDown(b.getMinLat()), roundDown(b.getMinLong()),
+				roundUp(b.getMaxLat()), roundUp(b.getMaxLong()));
+	}
+
+	private int roundUp(int val) {
+		int mask = (1 << SHIFT) - 1;
+		if (val > 0) {
+			return (val + mask) & ~mask;
+		} else {
+			return val & ~mask;
+		}
+	}
+
+	private int roundDown(int val) {
+		int mask = (1 << SHIFT) - 1;
+		if (val > 0) {
+			return (val) & ~mask;
+		} else {
+			return (val- mask) & ~mask;
+		}
 	}
 
 
