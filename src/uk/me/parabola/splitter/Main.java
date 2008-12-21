@@ -25,6 +25,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 
@@ -36,13 +39,27 @@ import java.util.zip.GZIPInputStream;
  * @author Steve Ratcliffe
  */
 public class Main {
+
+	private String filename;
+
+	// Traditional default, but please use a different one!
+	private int mapid = 63240001;
+
+	// The amount in map units that tiles overlap (note that the final img's will not overlap
+	// but the input files do).
+	private int overlapAmount = 2000;
+
+	// The max number of nodes that will appear in a single file.
+	private int maxNodes = 1600000;
+
 	public static void main(String[] args) {
 		Main m = new Main();
+		m.readArgs(args);
+
 		long start = System.currentTimeMillis();
+
 		try {
-			String filename = args[0];
-			System.out.println("Reading file " + filename);
-			m.readFile(filename);
+			m.readFile();
 		} catch (IOException e) {
 			System.err.println("Error opening or reading file " + e);
 		} catch (SAXException e) {
@@ -54,9 +71,37 @@ public class Main {
 		System.out.println("Total time " + (System.currentTimeMillis() - start)/1000 + "s");
 	}
 
-	private void readFile(String filename) throws IOException,
+	private void readArgs(String[] args) {
+		Properties props = new Properties();
+
+		for (String arg : args) {
+			if (arg.startsWith("--")) {
+				Pattern pattern = Pattern.compile("--(.*)=(.*)");
+				Matcher m = pattern.matcher(arg);
+				if (m.find()) {
+					String key = m.group(1);
+					String val = m.group(2);
+					System.out.printf("key %s/ val %s\n", key, val);
+					props.setProperty(key, val);
+				}
+			} else {
+				filename = arg;
+			}
+		}
+
+		EnhancedProperties config = new EnhancedProperties(props);
+
+		mapid = config.getProperty("mapname", mapid);
+		overlapAmount = config.getProperty("overlap", overlapAmount);
+		maxNodes = config.getProperty("max-nodes", maxNodes);
+	}
+
+	private void readFile() throws IOException,
 			SAXException, ParserConfigurationException
 	{
+		if (filename == null)
+			throw new FileNotFoundException("No filename given");
+		
 		InputStream is = openFile(filename);
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
@@ -64,22 +109,26 @@ public class Main {
 		DivisionParser xmlHandler = new DivisionParser();
 
 		try {
+			// First pass, read nodes and split into areas.
 			parser.parse(is, xmlHandler);
 		} catch (SAXException e) {
 			SubArea totalArea = xmlHandler.getTotalArea();
 			AreaSplitter splitter = new AreaSplitter();
-			SubArea[] areaList = splitter.split(totalArea, 1500000);
+			SubArea[] areaList = splitter.split(totalArea, maxNodes);
 
-			writeAreas(areaList, filename);
+			writeAreas(areaList);
 		}
 	}
 
-	private void writeAreas(SubArea[] areaList, String filename) throws
+	/**
+	 * Second pass, write out all the files.
+	 * @param areaList Area list determined on the first pass.
+	 */
+	private void writeAreas(SubArea[] areaList) throws
 			IOException, SAXException, ParserConfigurationException
 	{
-		int mapid = 1;
-		for (SubArea a : areaList) 
-			a.initForWrite(mapid++, 1000);
+		for (SubArea a : areaList)
+			a.initForWrite(mapid++, overlapAmount);
 
 		try {
 			InputStream is = openFile(filename);

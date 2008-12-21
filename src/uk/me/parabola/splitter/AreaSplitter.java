@@ -25,13 +25,23 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 
 /**
- * Used to split the SubArea's down into roughly sized pieces.
+ * Used to split the SubArea's down into roughly equal sized pieces.
+ * They will all have less than a specified number of nodes.
  * 
  * @author Steve Ratcliffe
  */
 public class AreaSplitter {
 	private static final int SHIFT = 11;
 
+	/**
+	 * Split a single area which would normally be the complete area of the map.
+	 * We just split areas that are too big into two.  We make a rough determination
+	 * of the largest dimention and split that way.
+	 * 
+	 * @param area The original area.
+	 * @param max The maximimum number of nodes that any area can contain.
+	 * @return An array of areas.  Each will have less than the specified number of nodes.
+	 */
 	public SubArea[] split(SubArea area, int max) {
 		LinkedList<SubArea> l = new LinkedList<SubArea>();
 

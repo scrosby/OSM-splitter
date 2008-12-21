@@ -16,6 +16,12 @@
  */
 package uk.me.parabola.splitter;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import uk.me.parabola.imgfmt.Utils;
+import uk.me.parabola.imgfmt.app.Area;
+import uk.me.parabola.log.Logger;
+
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,14 +32,9 @@ import java.util.Formatter;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
-import uk.me.parabola.log.Logger;
-
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
-
 /**
+ * Represents a tile, a subarea of the whole map.
+ * 
  * @author Steve Ratcliffe
  */
 public class SubArea {
@@ -55,7 +56,6 @@ public class SubArea {
 	public SubArea(Area area, int sizehint) {
 		this.bounds = area;
 		coords = new SplitIntMap();
-//		coords.growthFactor(8);
 	}
 
 	public void clear() {
@@ -166,7 +166,7 @@ public class SubArea {
 		while (it.hasNext()) {
 			Object2ObjectMap.Entry<String,String> entry = it.next();
 			writer.append("<tag k='");
-			writer.append(entry.getKey());
+			writeAttribute(entry.getKey());
 			writer.append("' v='");
 			writeAttribute(entry.getValue());
 			writer.append("'/>\n");
