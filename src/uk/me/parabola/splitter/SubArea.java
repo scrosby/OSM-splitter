@@ -161,6 +161,25 @@ public class SubArea {
 		writer.append("</way>\n");
 	}
 
+	public void write(StringRelation rel) throws IOException {
+		writer.append("<relation id='");
+		writer.append(rel.getStringId());
+		writer.append("'>\n");
+		List<StringRelation.Member> memlist = rel.getMembers();
+		for (StringRelation.Member m : memlist) {
+			writer.append("<member type='");
+			writer.append(m.getType());
+			writer.append("' ref='");
+			writer.append(m.getRef());
+			writer.append("' role='");
+			writer.append(m.getRole());
+			writer.append("'/>\n");
+		}
+		if (rel.hasTags())
+			writeTags(rel);
+		writer.append("</relation>\n");
+	}
+
 	private void writeTags(Element element) throws IOException {
 		ObjectIterator<Object2ObjectMap.Entry<String,String>> it = element.tagsIterator();
 		while (it.hasNext()) {

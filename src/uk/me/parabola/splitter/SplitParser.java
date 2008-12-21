@@ -49,6 +49,9 @@ class SplitParser extends DefaultHandler {
 	private StringWay currentWay;
 	private int currentWayAreaSet;
 
+	private StringRelation currentRelation;
+	private int currentRelAreaSet;
+
 	SplitParser(SubArea[] areas) {
 		this.areas = areas;
 	}
@@ -99,6 +102,9 @@ class SplitParser extends DefaultHandler {
 				
 			} else if (qName.equals("relation")) {
 				mode = MODE_RELATION;
+				String id = attributes.getValue("id");
+				currentRelation = new StringRelation(id);
+				currentRelAreaSet = 0;
 			}
 		} else if (mode == MODE_NODE) {
 			if (qName.equals("tag")) {
@@ -121,6 +127,8 @@ class SplitParser extends DefaultHandler {
 					int mask = 0xff;
 					for (int slot = 0; slot < 4; slot++, mask <<= 8) {
 						int val = (set & mask) >>> (slot * 8);
+						if (val == 0)
+							break;
 						// Now find it in the destination set or add it
 						currentWayAreaSet = addToSet(currentWayAreaSet, val, "way" + currentWay.getStringId());
 					}
@@ -132,7 +140,35 @@ class SplitParser extends DefaultHandler {
 						attributes.getValue("v"));
 			}
 		} else if (mode == MODE_RELATION) {
-			// TODO
+			if (qName.equals("tag")) {
+				currentRelation.addTag(attributes.getValue("k"), attributes.getValue("v"));
+			} else if (qName.equals("member")) {
+				String type = attributes.getValue("type");
+				String ref = attributes.getValue("ref");
+				currentRelation.addMember(type, ref, attributes.getValue("role"));
+
+				int iref = Integer.parseInt(ref);
+				int set = 0;
+				if ("node".equals(type)) {
+					set = coords.get(iref);
+				} else if ("way".equals(type)) {
+					set = ways.get(iref);
+				}
+				if (currentRelAreaSet == set) {
+					// nothing to do
+				} else if (currentRelAreaSet == 0) {
+					currentRelAreaSet = set;
+				} else {
+					int mask = 0xff;
+					for (int slot = 0; slot < 4; slot++, mask <<= 8) {
+						int val = (set & mask) >>> (slot * 8);
+						if (val == 0)
+							break;
+						// Now find it in the destination set or add it
+						currentRelAreaSet = addToSet(currentRelAreaSet, val, "relation" + currentRelation.getId());
+					}
+				}
+			}
 		}
 	}
 
@@ -172,6 +208,15 @@ class SplitParser extends DefaultHandler {
 					throw new SAXException("failed to write way", e);
 				}
 			}
+		} else if (mode == MODE_RELATION) {
+			if (qName.equals("relation")) {
+				mode = 0;
+				try {
+					writeRelation(currentRelation);
+				} catch (IOException e) {
+					throw new SAXException("failed to write relation", e);
+				}
+			}
 		}
 	}
 
@@ -189,6 +234,17 @@ class SplitParser extends DefaultHandler {
 		// it was not added
 		System.err.println("Crosses too many areas " + desc);
 		return set;
+	}
+
+	private void writeRelation(StringRelation relation) throws IOException {
+		for (int slot = 0; slot < 4; slot++) {
+			int n = (currentRelAreaSet >> (slot*8)) & 0xff;
+			if (n == 0)
+				break;
+
+			// if n is out of bounds, then something has gone wrong
+			areas[n-1].write(relation);
+		}
 	}
 
 	private void writeWay(StringWay way) throws IOException {
