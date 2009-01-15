@@ -1,7 +1,25 @@
+/*
+ * Copyright (C) 2008 Steve Ratcliffe
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 or
+ *  version 3 as published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *
+ * Author: Steve Ratcliffe
+ * Create date: 14-Dec-2008
+ */
 package uk.me.parabola.splitter;
 
+import uk.me.parabola.imgfmt.Utils;
+import uk.me.parabola.imgfmt.app.Area;
+
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -15,9 +33,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
 
 /**
  * A list of areas.  It can be read and written to a file.

@@ -2,8 +2,8 @@
  * Copyright (C) 2008 Steve Ratcliffe
  * 
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
+ *  it under the terms of the GNU General Public License version 2 or
+ *  version 3 as published by the Free Software Foundation.
  * 
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,12 +16,12 @@
  */
 package uk.me.parabola.splitter;
 
+import uk.me.parabola.imgfmt.Utils;
+import uk.me.parabola.imgfmt.app.Area;
+
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
-
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
 
 /**
  * Used to split the SubArea's down into roughly equal sized pieces.

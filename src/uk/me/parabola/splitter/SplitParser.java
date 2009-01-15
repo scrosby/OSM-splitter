@@ -2,8 +2,8 @@
  * Copyright (C) 2006 Steve Ratcliffe
  * 
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
+ *  it under the terms of the GNU General Public License version 2 or
+ *  version 3 as published by the Free Software Foundation.
  * 
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,15 +16,14 @@
  */
 package uk.me.parabola.splitter;
 
-import java.io.IOException;
-
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
-
 import uk.me.parabola.imgfmt.app.Coord;
+
+import java.io.IOException;
 
 /**
  * Parser for the second pass where we divide up the input file into the
