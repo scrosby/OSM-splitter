@@ -25,9 +25,9 @@ import uk.me.parabola.imgfmt.app.Coord;
  * @author Steve Ratcliffe
  */
 public class StringNode extends Element {
-	private Coord coord;
-	private String stringLat;
-	private String stringLon;
+	private final Coord coord;
+	private final String stringLat;
+	private final String stringLon;
 
 	public StringNode(Coord co, String stringId, String stringLat, String stringLon) {
 		super(stringId);

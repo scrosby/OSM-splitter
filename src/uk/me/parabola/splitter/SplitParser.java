@@ -16,14 +16,15 @@
  */
 package uk.me.parabola.splitter;
 
+import java.io.IOException;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
-import uk.me.parabola.imgfmt.app.Coord;
 
-import java.io.IOException;
+import uk.me.parabola.imgfmt.app.Coord;
 
 /**
  * Parser for the second pass where we divide up the input file into the
@@ -38,10 +39,10 @@ class SplitParser extends DefaultHandler {
 
 	private int mode;
 
-	private SplitIntMap coords = new SplitIntMap();
-	private SplitIntMap ways = new SplitIntMap();
+	private final SplitIntMap coords = new SplitIntMap();
+	private final SplitIntMap ways = new SplitIntMap();
 
-	private SubArea[] areas;
+	private final SubArea[] areas;
 
 	private StringNode currentNode;
 	private int currentNodeAreaSet;

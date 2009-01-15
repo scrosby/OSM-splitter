@@ -59,4 +59,8 @@ public class EnhancedProperties {
 		}
 		return def;
 	}
+
+	public boolean containsKey(String key) {
+		return props.containsKey(key);
+	}
 }

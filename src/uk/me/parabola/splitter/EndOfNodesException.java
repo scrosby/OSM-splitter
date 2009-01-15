@@ -12,28 +12,20 @@
  * 
  * 
  * Author: Steve Ratcliffe
- * Create date: 16-Dec-2008
+ * Create date: Dec 24, 2008
  */
 package uk.me.parabola.splitter;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.xml.sax.SAXException;
 
 /**
+ * Thrown at the end on pass 1, where we are only interested in the nodes.
+ * As soon as a way is seen this is thrown to indicate that we are done.
+ * 
  * @author Steve Ratcliffe
  */
-public class StringWay extends Element {
-	private final List<String> refs = new ArrayList<String>();
-
-	public StringWay(String stringId) {
-		super(stringId);
-	}
-
-	public void addRef(String ref) {
-		refs.add(ref);
-	}
-
-	public List<String> getRefs() {
-		return refs;
+public class EndOfNodesException extends SAXException {
+	public EndOfNodesException() {
+		super("End of nodes");
 	}
 }

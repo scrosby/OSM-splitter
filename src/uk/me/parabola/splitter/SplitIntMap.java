@@ -16,9 +16,8 @@
  */
 package uk.me.parabola.splitter;
 
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import java.util.Iterator;
+
 
 /**
  * An int/int map that is split into several smaller maps.  This is to avoid the problem where
@@ -33,19 +32,19 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
  */
 public class SplitIntMap {
 	private static final int NMAPS = 4;
-	public static final int MASK = 0x3;
+	private static final int MASK = NMAPS-1;
 
-	private static final int INIT_CAP = 100000;
-	private static final float LOAD = 0.9f;
+	private static final int INIT_CAP = 1<<16;
+	private static final float LOAD = 0.7f;
 
 	private int size;
 
-	private Int2IntOpenHashMap[] maps = new Int2IntOpenHashMap[NMAPS];
+	private final IntIntMap[] maps = new IntIntMap[NMAPS];
 
 	public SplitIntMap() {
 		for (int i = 0; i < NMAPS; i++) {
-			maps[i] = new Int2IntOpenHashMap(INIT_CAP, LOAD);
-			maps[i].growthFactor(4);
+			maps[i] = new IntIntMap(INIT_CAP, LOAD);
+			//maps[i].growthFactor(4);
 		}
 	}
 
@@ -73,17 +72,23 @@ public class SplitIntMap {
 		this.size = size();
 	}
 
-	public ObjectIterator<Int2IntMap.Entry> fastIterator() {
+	/**
+	 * An iterate over the entry set of the map.  The same Entry object is returned
+	 * each time.
+	 * @return An iterator that uses the same object each time it returns, with different
+	 * values filled in.
+	 */
+	public Iterator<IntIntMap.Entry> fastIterator() {
 		return new NormalObjectIterator();
 	}
 
 	/**
 	 * The deleting iterator takes case of the case where you are transfering the entries from
 	 * one map to another.  Once they are read, they are no longer needed and so the map
-	 * can be freed.  This avoids avoids using double memory when splitting the areas.
-	 * @return
+	 * can be freed.  This avoids avoids using double the memory when splitting the areas.
+	 * @return An iterator over the entry set.  The same Entry is returned each time.
 	 */
-	public ObjectIterator<Int2IntMap.Entry> fastDeletingIterator() {
+	public Iterator<IntIntMap.Entry> fastDeletingIterator() {
 		return new NormalObjectIterator(true);
 	}
 
@@ -93,18 +98,18 @@ public class SplitIntMap {
 	 */
 	public void trim() {
 		for (int i = 0; i < NMAPS; i++) {
-			maps[i].trim();
+			//maps[i].trim();
 		}
 	}
 
 	/**
 	 * Iterates over all the sub-maps.
 	 */
-	private class NormalObjectIterator implements ObjectIterator<Int2IntMap.Entry> {
+	private class NormalObjectIterator implements Iterator<IntIntMap.Entry> {
 
-		private boolean deleteAfter;
+		private final boolean deleteAfter;
 
-		private ObjectIterator[] iterators = new ObjectIterator[NMAPS];
+		private final Iterator[] iterators = new Iterator[NMAPS];
 
 		private int currentMap;
 
@@ -114,16 +119,12 @@ public class SplitIntMap {
 			
 			this.deleteAfter = deleteAfter;
 			for (int i = 0; i < NMAPS; i++) {
-				iterators[i] = maps[i].int2IntEntrySet().fastIterator();
+				iterators[i] = maps[i].entryIterator();
 			}
 		}
 
 		private NormalObjectIterator() {
 			this(false);
-		}
-
-		public int skip(int n) {
-			throw new UnsupportedOperationException();
 		}
 
 		/**
@@ -149,8 +150,8 @@ public class SplitIntMap {
 			return hasNext();
 		}
 
-		public Int2IntMap.Entry next() {
-			return (Int2IntMap.Entry) iterators[currentMap].next();
+		public IntIntMap.Entry next() {
+			return (IntIntMap.Entry) iterators[currentMap].next();
 		}
 
 		public void remove() {

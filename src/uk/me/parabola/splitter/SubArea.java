@@ -16,12 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
-import uk.me.parabola.log.Logger;
-
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,8 +23,14 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Formatter;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
+
+import uk.me.parabola.imgfmt.Utils;
+import uk.me.parabola.imgfmt.app.Area;
+import uk.me.parabola.log.Logger;
 
 /**
  * Represents a tile, a subarea of the whole map.
@@ -41,6 +41,7 @@ public class SubArea {
 	private static final Logger log = Logger.getLogger(SubArea.class);
 
 	private final Area bounds;
+	private int mapid;
 
 	private Area extendedBounds;
 	private BufferedWriter writer;
@@ -53,7 +54,7 @@ public class SubArea {
 		this.coords = coords;
 	}
 
-	public SubArea(Area area, int sizehint) {
+	public SubArea(Area area) {
 		this.bounds = area;
 		coords = new SplitIntMap();
 	}
@@ -72,6 +73,10 @@ public class SubArea {
 		return coords;
 	}
 
+	public int getMapid() {
+		return mapid;
+	}
+
 	public void put(int key, int co) {
 		coords.put(key, co);
 	}
@@ -83,7 +88,7 @@ public class SubArea {
 			return size;
 	}
 
-	public void initForWrite(int mapid, int extra) {
+	public void initForWrite(int extra) {
 		extendedBounds = new Area(bounds.getMinLat() - extra,
 				bounds.getMinLong() - extra,
 				bounds.getMaxLat() + extra,
@@ -181,9 +186,9 @@ public class SubArea {
 	}
 
 	private void writeTags(Element element) throws IOException {
-		ObjectIterator<Object2ObjectMap.Entry<String,String>> it = element.tagsIterator();
+		Iterator<Map.Entry<String,String>> it = element.tagsIterator();
 		while (it.hasNext()) {
-			Object2ObjectMap.Entry<String,String> entry = it.next();
+			Map.Entry<String,String> entry = it.next();
 			writer.append("<tag k='");
 			writeAttribute(entry.getKey());
 			writer.append("' v='");
@@ -203,5 +208,9 @@ public class SubArea {
 			} else
 				writer.append(c);
 		}
+	}
+
+	void setMapid(int mapid) {
+		this.mapid = mapid;
 	}
 }

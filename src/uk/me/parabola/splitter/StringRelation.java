@@ -23,7 +23,7 @@ import java.util.List;
  * @author Steve Ratcliffe
  */
 public class StringRelation extends Element {
-	private List<Member> members = new ArrayList<Member>();
+	private final List<Member> members = new ArrayList<Member>();
 
 	public StringRelation(String stringId) {
 		super(stringId);

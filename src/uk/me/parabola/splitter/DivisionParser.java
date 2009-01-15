@@ -21,6 +21,7 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
+
 import uk.me.parabola.imgfmt.app.Area;
 import uk.me.parabola.imgfmt.app.Coord;
 import uk.me.parabola.mkgmap.general.MapDetails;
@@ -39,7 +40,7 @@ class DivisionParser extends DefaultHandler {
 	private static final int MODE_NODE = 1;
 
 	private SplitIntMap coords = new SplitIntMap();
-	private MapDetails details = new MapDetails();
+	private final MapDetails details = new MapDetails();
 
 	/**
 	 * Receive notification of the start of an element.
@@ -88,7 +89,7 @@ class DivisionParser extends DefaultHandler {
 				details.addToBounds(co);
 
 			} else if (qName.equals("way")) {
-				throw new SAXException("end of nodes");
+				throw new EndOfNodesException();
 			}
 		}
 	}

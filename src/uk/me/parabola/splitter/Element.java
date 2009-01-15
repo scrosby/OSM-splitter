@@ -16,16 +16,16 @@
  */
 package uk.me.parabola.splitter;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * @author Steve Ratcliffe
  */
 public class Element {
-	private Object2ObjectArrayMap<String, String> tags;
-	protected String stringId;
+	private Map<String, String> tags;
+	protected final String stringId;
 
 	public Element(String stringId) {
 		this.stringId = stringId;
@@ -40,7 +40,7 @@ public class Element {
 			return;
 		
 		if (tags == null)
-			tags = new Object2ObjectArrayMap<String, String>(8);
+			tags = new HashMap<String, String>(8);
 		tags.put(key, value);
 	}
 
@@ -48,8 +48,8 @@ public class Element {
 		return tags != null && !tags.isEmpty();
 	}
 
-	public ObjectIterator<Object2ObjectMap.Entry<String,String>> tagsIterator() {
-		return tags.object2ObjectEntrySet().fastIterator();
+	public Iterator<Map.Entry<String,String>> tagsIterator() {
+		return tags.entrySet().iterator();
 	}
 
 	public String getStringId() {
