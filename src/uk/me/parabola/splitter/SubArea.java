@@ -98,7 +98,7 @@ public class SubArea {
 		try {
 			FileOutputStream fos = new FileOutputStream(filename);
 			OutputStream zos = new GZIPOutputStream(fos);
-			Writer w = new OutputStreamWriter(zos);
+			Writer w = new OutputStreamWriter(zos, "utf-8");
 			writer = new BufferedWriter(w);
 			writeHeader();
 		} catch (IOException e) {
