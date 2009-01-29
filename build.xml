@@ -48,7 +48,7 @@
 
   <target name="compile" depends="prepare" description="main compilation">
 
-    <javac srcdir="${src}" destdir="${build.classes}">
+    <javac srcdir="${src}" destdir="${build.classes}" debug="yes">
       <include name="**/*.java" />
       <classpath refid="main"/>
     </javac>

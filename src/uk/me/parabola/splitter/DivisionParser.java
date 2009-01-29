@@ -41,6 +41,9 @@ class DivisionParser extends DefaultHandler {
 	private SplitIntMap coords = new SplitIntMap();
 	private final MapDetails details = new MapDetails();
 
+	// Mixed nodes and ways in the file.
+	private boolean mixed;
+
 	/**
 	 * Receive notification of the start of an element.
 	 *
@@ -88,7 +91,8 @@ class DivisionParser extends DefaultHandler {
 				details.addToBounds(co);
 
 			} else if (qName.equals("way")) {
-				throw new EndOfNodesException();
+				if (!mixed)
+					throw new EndOfNodesException();
 			}
 		}
 	}
@@ -116,6 +120,11 @@ class DivisionParser extends DefaultHandler {
 				mode = 0;
 			}
 		}
+	}
+
+	public void endDocument() throws SAXException {
+		if (mixed)
+			throw new EndOfNodesException();
 	}
 
 	public SubArea getTotalArea() {
@@ -148,10 +157,13 @@ class DivisionParser extends DefaultHandler {
 		}
 	}
 
-
 	public void fatalError(SAXParseException e) throws SAXException {
 		System.err.println("Error at line " + e.getLineNumber() + ", col "
 				+ e.getColumnNumber());
 		super.fatalError(e);
+	}
+
+	public void setMixed(boolean mixed) {
+		this.mixed = mixed;
 	}
 }

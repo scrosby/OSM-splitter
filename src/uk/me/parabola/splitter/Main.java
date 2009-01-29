@@ -56,6 +56,7 @@ public class Main {
 
 	// Set if there is a previous area file given on the command line.
 	private AreaList areaList;
+	private boolean mixed;
 
 	public static void main(String[] args) {
 		Main m = new Main();
@@ -111,6 +112,7 @@ public class Main {
 		mapid = config.getProperty("mapid", config.getProperty("mapname", mapid));
 		overlapAmount = config.getProperty("overlap", overlapAmount);
 		maxNodes = config.getProperty("max-nodes", maxNodes);
+		mixed = config.getProperty("mixed", false);
 
 		if (config.containsKey("split-file")) {
 			String splitFile = config.getProperty("split-file");
@@ -140,6 +142,7 @@ public class Main {
 		SAXParser parser = parserFactory.newSAXParser();
 
 		DivisionParser xmlHandler = new DivisionParser();
+		xmlHandler.setMixed(mixed);
 
 		try {
 			// First pass, read nodes and split into areas.
