@@ -108,7 +108,7 @@ public class Main {
 
 		EnhancedProperties config = new EnhancedProperties(props);
 
-		mapid = config.getProperty("mapname", mapid);
+		mapid = config.getProperty("mapid", config.getProperty("mapname", mapid));
 		overlapAmount = config.getProperty("overlap", overlapAmount);
 		maxNodes = config.getProperty("max-nodes", maxNodes);
 
