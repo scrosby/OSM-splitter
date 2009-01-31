@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="mkgmap">
+    <CLASSES>
+      <root url="file:///home/steve/src/mkgmap/build/classes" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file:///home/steve/src/mkgmap/src" />
+    </SOURCES>
+  </library>
+</component>
