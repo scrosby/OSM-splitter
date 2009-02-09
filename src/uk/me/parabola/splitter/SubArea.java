@@ -16,10 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
-import uk.me.parabola.log.Logger;
-
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -38,7 +34,6 @@ import java.util.zip.GZIPOutputStream;
  * @author Steve Ratcliffe
  */
 public class SubArea {
-	private static final Logger log = Logger.getLogger(SubArea.class);
 
 	private final Area bounds;
 	private int mapid;
@@ -102,8 +97,7 @@ public class SubArea {
 			writer = new BufferedWriter(w);
 			writeHeader();
 		} catch (IOException e) {
-			System.out.println("Could not open, write file header");
-			log.warn("Could not open file, or write header", filename);
+			System.out.println("Could not open or write file header");
 		}
 	}
 
@@ -126,7 +120,6 @@ public class SubArea {
 			writer.close();
 		} catch (IOException e) {
 			System.out.println("Could not write end of file: " + e);
-			log.warn("Could not write end of file");
 		}
 	}
 

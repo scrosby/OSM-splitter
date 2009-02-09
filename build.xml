@@ -30,7 +30,6 @@
   <property name="build" value="build"/>
   <property name="dist" value="dist"/>
   <property name="build.classes" value="${build}/classes"/>
-	<property name="mkgmap.classes" value="../mkgmap/build/classes"/>
   <property name="src" value="src"/>
   <property name="doc" value="doc"/>
   <property name="javadoc" value="${doc}/api"/>
@@ -38,7 +37,6 @@
 
   <path id="main">
     <pathelement location="${build.classes}" />
-    <pathelement location="${mkgmap.classes}" />
   </path>
 
 	<!-- Prepare - make all the directories -->

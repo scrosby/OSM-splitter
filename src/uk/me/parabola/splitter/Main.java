@@ -201,7 +201,7 @@ public class Main {
 	 * for the split file pieces.  You are encouraged to edit the file and so it
 	 * contains a template of all the arguments that you might want to use.
 	 */
-	public void writeArgsFile() {
+	protected void writeArgsFile() {
 		PrintWriter w;
 		try {
 			w = new PrintWriter(new FileWriter("template.args"));

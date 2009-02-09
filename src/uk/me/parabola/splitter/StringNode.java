@@ -16,8 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import uk.me.parabola.imgfmt.app.Coord;
-
 /**
  * A node where the originally read strings are also saved so that we can
  * easily print them out again.

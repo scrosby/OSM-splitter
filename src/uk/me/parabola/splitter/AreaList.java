@@ -16,9 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;

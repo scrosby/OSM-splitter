@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class Element {
 	private Map<String, String> tags;
-	protected final String stringId;
+	private final String stringId;
 
 	public Element(String stringId) {
 		this.stringId = stringId;

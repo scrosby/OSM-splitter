@@ -16,9 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import uk.me.parabola.imgfmt.Utils;
-import uk.me.parabola.imgfmt.app.Area;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;

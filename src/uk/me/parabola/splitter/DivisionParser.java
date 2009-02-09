@@ -21,9 +21,6 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
-import uk.me.parabola.imgfmt.app.Area;
-import uk.me.parabola.imgfmt.app.Coord;
-import uk.me.parabola.mkgmap.general.MapDetails;
 
 /**
  * First pass of the OSM file for the initial dividing up of the

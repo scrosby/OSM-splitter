@@ -35,6 +35,7 @@ public class EnhancedProperties {
 		return props.getProperty(key);
 	}
 
+	@SuppressWarnings({"UnusedDeclaration"})
 	public String getProperty(String key, String def) {
 		return props.getProperty(key, def);
 	}
