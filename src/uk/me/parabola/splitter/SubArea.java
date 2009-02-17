@@ -105,13 +105,15 @@ public class SubArea {
 		writer.append("<?xml version='1.0' encoding='UTF-8'?>\n");
 		writer.append("<osm version='0.5' generator='splitter'>\n");
 
-		Formatter fmt = new Formatter(writer);
-		fmt.format("<bounds minlat='%f' minlon='%f' maxlat='%f' maxlon='%f'/>\n",
-				Utils.toDegrees(bounds.getMinLat()),
-				Utils.toDegrees(bounds.getMinLong()),
-				Utils.toDegrees(bounds.getMaxLat()),
-				Utils.toDegrees(bounds.getMaxLong()));
-		fmt.flush();
+		writer.append("<bounds minlat='");
+		writer.append(String.valueOf(Utils.toDegrees(bounds.getMinLat())));
+		writer.append("' minlon='");
+		writer.append(String.valueOf(Utils.toDegrees(bounds.getMinLong())));
+		writer.append("' maxlat='");
+		writer.append(String.valueOf(Utils.toDegrees(bounds.getMaxLat())));
+		writer.append("' maxlon='");
+		writer.append(String.valueOf(Utils.toDegrees(bounds.getMaxLong())));
+		writer.append("'/>\n");
 	}
 
 	public void finishWrite() {
