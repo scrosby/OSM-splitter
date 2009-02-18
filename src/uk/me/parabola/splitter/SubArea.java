@@ -25,6 +25,7 @@ import java.io.Writer;
 import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -89,7 +90,7 @@ public class SubArea {
 				bounds.getMaxLat() + extra,
 				bounds.getMaxLong() + extra);
 
-		String filename = new Formatter().format("%08d.osm.gz", mapid).toString();
+		String filename = new Formatter().format(Locale.ROOT, "%08d.osm.gz", mapid).toString();
 		try {
 			FileOutputStream fos = new FileOutputStream(filename);
 			OutputStream zos = new GZIPOutputStream(fos);

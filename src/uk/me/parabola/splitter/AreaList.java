@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,11 +69,11 @@ public class AreaList implements Iterable<SubArea> {
 
 			for (SubArea a : areas) {
 				Area b = a.getBounds();
-				pw.format("%d: 0x%x,0x%x to 0x%x,0x%x\n",
+				pw.format(Locale.ROOT, "%d: 0x%x,0x%x to 0x%x,0x%x\n",
 						a.getMapid(),
 						b.getMinLat(), b.getMinLong(),
 						b.getMaxLat(), b.getMaxLong());
-				pw.format("#       : %f,%f to %f,%f\n",
+				pw.format(Locale.ROOT, "#       : %f,%f to %f,%f\n",
 						Utils.toDegrees(b.getMinLat()), Utils.toDegrees(b.getMinLong()),
 						Utils.toDegrees(b.getMaxLat()), Utils.toDegrees(b.getMaxLong()));
 				pw.println();
