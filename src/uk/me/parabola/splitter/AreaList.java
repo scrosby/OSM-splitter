@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
  */
 public class AreaList implements Iterable<SubArea> {
 	private SubArea[] areas;
+	private static final SubArea[] SUB_AREA = new SubArea[0];
 
 	public AreaList(List<SubArea> areas) {
 		this.areas = areas.toArray(new SubArea[areas.size()]);
@@ -69,7 +70,7 @@ public class AreaList implements Iterable<SubArea> {
 
 			for (SubArea a : areas) {
 				Area b = a.getBounds();
-				pw.format(Locale.ROOT, "%d: 0x%x,0x%x to 0x%x,0x%x\n",
+				pw.format(Locale.ROOT, "%d: %d,%d to %d,%d\n",
 						a.getMapid(),
 						b.getMinLat(), b.getMinLong(),
 						b.getMaxLat(), b.getMaxLong());
@@ -96,8 +97,8 @@ public class AreaList implements Iterable<SubArea> {
 		List<SubArea> list = new ArrayList<SubArea>();
 
 		Pattern pattern = Pattern.compile("([0-9]{8}):" +
-				" (0x\\p{XDigit}+),(0x\\p{XDigit}+)" +
-				" to (0x\\p{XDigit}+),(0x\\p{XDigit}+)");
+				" ([\\p{Digit}-]+),([\\p{Digit}-]+)" +
+				" to ([\\p{Digit}-]+),([\\p{Digit}-]+)");
 
 		try {
 			r = new FileReader(filename);
@@ -113,7 +114,7 @@ public class AreaList implements Iterable<SubArea> {
 				matcher.find();
 				String mapid = matcher.group(1);
 
-				System.out.println("g3" + matcher.group(3));
+				System.out.println("g3 " + matcher.group(3));
 				Area b = new Area(
 						Integer.decode(matcher.group(2)),
 						Integer.decode(matcher.group(3)),
@@ -126,6 +127,7 @@ public class AreaList implements Iterable<SubArea> {
 
 			areas = list.toArray(new SubArea[list.size()]);
 		} catch (NumberFormatException e) {
+			areas = SUB_AREA;
 			System.err.println("Bad number in areas list file");
 		} finally {
 			if (r != null)
@@ -142,13 +144,14 @@ public class AreaList implements Iterable<SubArea> {
 	}
 
 	public void dump() {
+		System.out.println("Areas read from file");
 		for (SubArea a : areas) {
 			Area b = a.getBounds();
 			System.out.printf("%d: %x,%x %x,%x\n",
 					a.getMapid(),
 					b.getMinLat(), b.getMinLong(),
 					b.getMaxLat(), b.getMaxLong()
-					);
+			);
 		}
 	}
 }
