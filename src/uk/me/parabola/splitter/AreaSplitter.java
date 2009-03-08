@@ -66,7 +66,9 @@ public class AreaSplitter {
 				notDone = true;
 				Area bounds = workarea.getBounds();
 				int height = bounds.getHeight();
-				int width = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
+				int width1 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
+				int width2 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
+				int width = Math.max(width1,width2);
 				SubArea[] sub;
 				if (height > width)
 					sub = splitVert(workarea);
