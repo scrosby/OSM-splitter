@@ -23,6 +23,7 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.IOException;
+import java.util.Date;
 
 /**
  * Parser for the second pass where we divide up the input file into the
@@ -235,26 +236,37 @@ class SplitParser extends DefaultHandler {
 		return set;
 	}
 
+	private boolean seenRel;
 	private void writeRelation(StringRelation relation) throws IOException {
+		if (!seenRel) {
+			seenRel = true;
+			System.out.println("starting rels " + new Date());
+		}
 		for (int slot = 0; slot < 4; slot++) {
-			int n = (currentRelAreaSet >> (slot*8)) & 0xff;
+			int n = (currentRelAreaSet >> (slot * 8)) & 0xff;
 			if (n == 0)
 				break;
 
 			// if n is out of bounds, then something has gone wrong
-			areas[n-1].write(relation);
+			areas[n - 1].write(relation);
 		}
 	}
 
+	private boolean seenWay;
 	private void writeWay(StringWay way) throws IOException {
+		if (!seenWay) {
+			seenWay = true;
+			System.out.println("starting ways " + new Date());
+		}
 		for (int slot = 0; slot < 4; slot++) {
-			int n = (currentWayAreaSet >> (slot*8)) & 0xff;
+			int n = (currentWayAreaSet >> (slot * 8)) & 0xff;
 			if (n == 0)
 				break;
 
 			// if n is out of bounds, then something has gone wrong
-			areas[n-1].write(way);
+			areas[n - 1].write(way);
 		}
+		ways.put(way.getId(), currentWayAreaSet);
 	}
 
 	private void writeNode(StringNode node) throws IOException {

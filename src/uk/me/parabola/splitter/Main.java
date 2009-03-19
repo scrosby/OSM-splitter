@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Date;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,6 +63,7 @@ public class Main {
 		Main m = new Main();
 
 		long start = System.currentTimeMillis();
+		System.out.println("start " + new Date());
 
 		try {
 			m.split(args);
@@ -82,7 +84,7 @@ public class Main {
 			calculateAndSplit();
 		else
 			justSplit();
-
+		System.out.println("Finish " + new Date());
 		writeArgsFile();
 	}
 
@@ -179,6 +181,8 @@ public class Main {
 	private void writeAreas(AreaList areaList) throws
 			IOException, SAXException, ParserConfigurationException
 	{
+		System.out.println("starting write out  " + new Date());
+		
 		for (SubArea a : areaList)
 			a.initForWrite(overlapAmount);
 
