@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,7 +45,7 @@ import java.util.zip.GZIPInputStream;
  */
 public class Main {
 
-	private String filename;
+	private List<String> filenames = new LinkedList<String>();
 
 	// Traditional default, but please use a different one!
 	private int mapid = 63240001;
@@ -105,7 +107,7 @@ public class Main {
 					props.setProperty(key, val);
 				}
 			} else {
-				filename = arg;
+				filenames.add(arg);
 			}
 		}
 
@@ -136,34 +138,36 @@ public class Main {
 	private void calculateAndSplit() throws IOException,
 			SAXException, ParserConfigurationException
 	{
-		if (filename == null)
+		if (filenames.isEmpty())
 			throw new FileNotFoundException("No filename given");
 
-		InputStream is = openFile(filename);
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
 
 		DivisionParser xmlHandler = new DivisionParser();
 		xmlHandler.setMixed(mixed);
 
-		try {
-			// First pass, read nodes and split into areas.
-			parser.parse(is, xmlHandler);
-		} catch (EndOfNodesException e) {
-			// Now split the area up
-			SubArea totalArea = xmlHandler.getTotalArea();
-			AreaSplitter splitter = new AreaSplitter();
-			areaList = splitter.split(totalArea, maxNodes);
-
-			// Set the mapid's
-			for (SubArea a : areaList)
-				a.setMapid(mapid++);
-
-			areaList.write("areas.list");
-
-			// Finally write it out, this re-reads the file from scratch.
-			writeAreas(areaList);
+		for (String filename : filenames) {
+			InputStream is = openFile(filename);
+			try {
+				// First pass, read nodes and split into areas.
+				parser.parse(is, xmlHandler);
+			} catch (EndOfNodesException e) {
+			}
 		}
+		// Now split the area up
+		SubArea totalArea = xmlHandler.getTotalArea();
+		AreaSplitter splitter = new AreaSplitter();
+		areaList = splitter.split(totalArea, maxNodes);
+
+		// Set the mapid's
+		for (SubArea a : areaList)
+			a.setMapid(mapid++);
+
+		areaList.write("areas.list");
+
+		// Finally write it out, this re-reads the file from scratch.
+		writeAreas(areaList);
 	}
 
 	/**
@@ -187,12 +191,14 @@ public class Main {
 			a.initForWrite(overlapAmount);
 
 		try {
-			InputStream is = openFile(filename);
 			SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 			SAXParser parser = parserFactory.newSAXParser();
 
 			SplitParser xmlHandler = new SplitParser(areaList.getAreas());
-			parser.parse(is, xmlHandler);
+			for (String filename : filenames) {
+				InputStream is = openFile(filename);
+				parser.parse(is, xmlHandler);
+			}
 		} finally {
 			for (SubArea a : areaList)
 				a.finishWrite();
