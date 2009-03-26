@@ -2,8 +2,8 @@
  * Copyright (C) 2007 Steve Ratcliffe
  * 
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 or
- *  version 3 as published by the Free Software Foundation.
+ *  it under the terms of the GNU General Public License version 3
+ *  as published by the Free Software Foundation.
  * 
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,6 +16,7 @@
  */
 package uk.me.parabola.splitter;
 
+import org.apache.tools.bzip2.CBZip2InputStream;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -154,6 +155,8 @@ public class Main {
 				parser.parse(is, xmlHandler);
 			} catch (EndOfNodesException e) {
 			}
+			// Release resources
+			is.close();
 		}
 		// Now split the area up
 		SubArea totalArea = xmlHandler.getTotalArea();
@@ -198,6 +201,8 @@ public class Main {
 			for (String filename : filenames) {
 				InputStream is = openFile(filename);
 				parser.parse(is, xmlHandler);
+				// Release resources
+				is.close();
 			}
 		} finally {
 			for (SubArea a : areaList)
@@ -257,7 +262,14 @@ public class Main {
 			try {
 				is = new GZIPInputStream(is);
 			} catch (IOException e) {
-				throw new FileNotFoundException( "Could not read as compressed file");
+				throw new FileNotFoundException( "Could not read as gz compressed file");
+			}
+		}
+		if (name.endsWith(".bz2")) {
+			try {
+				is.read(); is.read(); is = new CBZip2InputStream(is);
+			} catch (Exception e) {
+				throw new FileNotFoundException( "Could not read as bz2 compressed file");
 			}
 		}
 		return is;
