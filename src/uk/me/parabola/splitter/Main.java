@@ -154,10 +154,13 @@ public class Main {
 				// First pass, read nodes and split into areas.
 				parser.parse(is, xmlHandler);
 			} catch (EndOfNodesException e) {
+				// Finished reading the nodes, rest of file ignored.
+			} finally {
+				// Release resources
+				is.close();
 			}
-			// Release resources
-			is.close();
 		}
+
 		// Now split the area up
 		SubArea totalArea = xmlHandler.getTotalArea();
 		AreaSplitter splitter = new AreaSplitter();
