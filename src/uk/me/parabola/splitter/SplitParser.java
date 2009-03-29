@@ -130,7 +130,7 @@ class SplitParser extends DefaultHandler {
 						if (val == 0)
 							break;
 						// Now find it in the destination set or add it
-						currentWayAreaSet = addToSet(currentWayAreaSet, val, "way" + currentWay.getStringId());
+						currentWayAreaSet = addToSet(currentWayAreaSet, val, "Way " + currentWay.getStringId());
 					}
 				}
 
@@ -165,7 +165,7 @@ class SplitParser extends DefaultHandler {
 						if (val == 0)
 							break;
 						// Now find it in the destination set or add it
-						currentRelAreaSet = addToSet(currentRelAreaSet, val, "relation" + currentRelation.getId());
+						currentRelAreaSet = addToSet(currentRelAreaSet, val, "Relation " + currentRelation.getId());
 					}
 				}
 			}
@@ -232,7 +232,7 @@ class SplitParser extends DefaultHandler {
 			val <<= 8;
 		}
 		// it was not added
-		System.err.println("Crosses too many areas " + desc);
+		System.err.println(desc + " in too many areas.");
 		return set;
 	}
 
@@ -280,7 +280,7 @@ class SplitParser extends DefaultHandler {
 					currentNodeAreaSet = n;
 				} else {
 					currentNodeAreaSet = addToSet(currentNodeAreaSet, n,
-							"node" + node.getStringId());
+							"Node " + node.getStringId());
 				}
 			}
 		}
