@@ -35,7 +35,7 @@ class DivisionParser extends DefaultHandler {
 
 	private static final int MODE_NODE = 1;
 
-	private SplitIntMap coords = new SplitIntMap();
+	private SplitIntList coords = new SplitIntList();
 	private final MapDetails details = new MapDetails();
 
 	// Mixed nodes and ways in the file.
@@ -68,7 +68,6 @@ class DivisionParser extends DefaultHandler {
 			if (qName.equals("node")) {
 				mode = MODE_NODE;
 
-				String id = attributes.getValue("id");
 				String slat = attributes.getValue("lat");
 				String slon = attributes.getValue("lon");
 
@@ -83,7 +82,7 @@ class DivisionParser extends DefaultHandler {
 				int glon = co.getLongitude();
 				int coord = ((glat << 8) & 0xffff0000) + ((glon >> 8) & 0xffff);
 
-				coords.put(Integer.parseInt(id), coord);
+				coords.add(coord);
 
 				details.addToBounds(co);
 

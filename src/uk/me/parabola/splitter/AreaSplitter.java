@@ -16,7 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
@@ -32,10 +31,10 @@ public class AreaSplitter {
 	/**
 	 * Split a single area which would normally be the complete area of the map.
 	 * We just split areas that are too big into two.  We make a rough determination
-	 * of the largest dimention and split that way.
+	 * of the largest dimension and split that way.
 	 * 
 	 * @param area The original area.
-	 * @param max The maximimum number of nodes that any area can contain.
+	 * @param max The maximum number of nodes that any area can contain.
 	 * @return An array of areas.  Each will have less than the specified number of nodes.
 	 */
 	public AreaList split(SubArea area, int max) {
@@ -50,12 +49,12 @@ public class AreaSplitter {
 			ListIterator<SubArea> it = l.listIterator();
 			while (it.hasNext()) {
 				SubArea workarea = it.next();
-				SplitIntMap map = workarea.getCoords();
-				if (map == null) {
+				SplitIntList list = workarea.getCoords();
+				if (list == null) {
 					continue;
 				}
 
-				int size = map.size();
+				int size = list.size();
 				System.out.println("comparing size " + workarea.getSize());
 				if (size < max) {
 					workarea.clear();
@@ -95,14 +94,14 @@ public class AreaSplitter {
 		System.out.println("left = " + left);
 		System.out.println("right = " + right);
 
-		SplitIntMap baseCoords = base.getCoords();
+		SplitIntList baseCoords = base.getCoords();
 
-		Iterator<IntIntMap.Entry> it = baseCoords.fastIterator();
+	  SplitIntList.Iterator it = baseCoords.getIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
-			IntIntMap.Entry entry = it.next();
-			int lon = extractLongitude(entry.getValue());
+			int val = it.next();
+			int lon = extractLongitude(val);
 			assert lon >= left && lon <= right : lon;
 			count++;
 			total += lon - left + 1;
@@ -120,15 +119,13 @@ public class AreaSplitter {
 		SubArea a1 = new SubArea(b1);
 		SubArea a2 = new SubArea(b2);
 
-		it = baseCoords.fastDeletingIterator();
+		it = baseCoords.getDeletingIterator();
 		while (it.hasNext()) {
-			IntIntMap.Entry entry = it.next();
-			int key = entry.getKey();
-			int co = entry.getValue();
+			int co = it.next();
 			if (extractLongitude(co) < mid) {
-				a1.put(key, co);
+				a1.add(co);
 			} else {
-				a2.put(key, co);
+				a2.add(co);
 			}
 		}
 
@@ -142,15 +139,15 @@ public class AreaSplitter {
 		int top = bounds.getMaxLat();
 		int bot = bounds.getMinLat();
 
-		SplitIntMap caseCoords = base.getCoords();
+		SplitIntList caseCoords = base.getCoords();
 
-		Iterator<IntIntMap.Entry> it = caseCoords.fastIterator();
+		SplitIntList.Iterator it = caseCoords.getIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
-			IntIntMap.Entry entry = it.next();
-			int lat = extractLatitude(entry.getValue());
-			assert lat >= bot && extractLongitude(entry.getValue()) <= top : lat;
+			int val = it.next();
+			int lat = extractLatitude(val);
+			assert lat >= bot && extractLongitude(val) <= top : lat;
 			count++;
 			total += lat - bot;
 		}
@@ -167,15 +164,13 @@ public class AreaSplitter {
 
 		caseCoords = base.getCoords();
 
-		it = caseCoords.fastDeletingIterator();
+		it = caseCoords.getDeletingIterator();
 		while (it.hasNext()) {
-			IntIntMap.Entry entry = it.next();
-			int key = entry.getKey();
-			int co = entry.getValue();
+			int co = it.next();
 			if (extractLatitude(co) <= mid) {
-				a1.put(key, co);
+				a1.add(co);
 			} else {
-				a2.put(key, co);
+				a2.add(co);
 			}
 		}
 

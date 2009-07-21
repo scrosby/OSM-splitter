@@ -42,17 +42,17 @@ public class SubArea {
 	private Area extendedBounds;
 	private BufferedWriter writer;
 
-	private SplitIntMap coords;
+	private SplitIntList coords;
 	private int size;
 
-	public SubArea(Area bounds, SplitIntMap coords) {
+	public SubArea(Area bounds, SplitIntList coords) {
 		this.bounds = bounds;
 		this.coords = coords;
 	}
 
 	public SubArea(Area area) {
 		this.bounds = area;
-		coords = new SplitIntMap();
+		coords = new SplitIntList();
 	}
 
 	public void clear() {
@@ -65,7 +65,7 @@ public class SubArea {
 		return bounds;
 	}
 
-	public SplitIntMap getCoords() {
+	public SplitIntList getCoords() {
 		return coords;
 	}
 
@@ -73,8 +73,8 @@ public class SubArea {
 		return mapid;
 	}
 
-	public void put(int key, int co) {
-		coords.put(key, co);
+	public void add(int co) {
+		coords.add(co);
 	}
 
 	public int getSize() {
