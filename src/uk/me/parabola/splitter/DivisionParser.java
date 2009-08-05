@@ -16,11 +16,7 @@
  */
 package uk.me.parabola.splitter;
 
-import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
+import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * First pass of the OSM file for the initial dividing up of the
@@ -28,12 +24,15 @@ import org.xml.sax.helpers.DefaultHandler;
  *
  * @author Steve Ratcliffe
  */
-class DivisionParser extends DefaultHandler {
+class DivisionParser extends AbstractXppParser {
 	private int mode;
 
 	private static final int SHIFT = 11;
 
 	private static final int MODE_NODE = 1;
+
+	// How many nodes to process before displaying a status update
+	private static final int STATUS_UPDATE_THRESHOLD = 2500000;
 
 	private SplitIntList coords = new SplitIntList();
 	private final MapDetails details = new MapDetails();
@@ -41,41 +40,40 @@ class DivisionParser extends DefaultHandler {
 	// Mixed nodes and ways in the file.
 	private boolean mixed;
 
+	private int minNodeId = Integer.MAX_VALUE;
+	private int maxNodeId = Integer.MIN_VALUE;
+	private int nodeCount;
+
+	DivisionParser() throws XmlPullParserException {
+	}
+
 	/**
 	 * Receive notification of the start of an element.
 	 *
-	 * @param uri The Namespace URI, or the empty string if the
-	 * element has no Namespace URI or if Namespace
-	 * processing is not being performed.
-	 * @param localName The local name (without prefix), or the
-	 * empty string if Namespace processing is not being
-	 * performed.
-	 * @param qName The qualified name (with prefix), or the
-	 * empty string if qualified names are not available.
-	 * @param attributes The attributes attached to the element.  If
-	 * there are no attributes, it shall be an empty
-	 * Attributes object.
-	 * @throws SAXException Any SAX exception, possibly
-	 * wrapping another exception.
-	 * @see ContentHandler#startElement
+	 * @returns {@code true} to prevent any further parsing.
 	 */
-	public void startElement(String uri, String localName,
-			String qName, Attributes attributes)
-			throws SAXException
+	public boolean startElement()
 	{
-
 		if (mode == 0) {
-			if (qName.equals("node")) {
+			String name = getParser().getName();
+			if (name.equals("node")) {
 				mode = MODE_NODE;
 
-				String slat = attributes.getValue("lat");
-				String slon = attributes.getValue("lon");
-
-				double lat = Double.parseDouble(slat);
-				double lon = Double.parseDouble(slon);
+				nodeCount++;
+				int id = Integer.parseInt(getAttr("id"));
+				double lat = Double.parseDouble(getAttr("lat"));
+				double lon = Double.parseDouble(getAttr("lon"));
 				Coord co = new Coord(lat, lon);
 
-				// Since we are rounding areas to fit on a low zoom boundry we
+				if (id < minNodeId) {
+					minNodeId = id;
+				} else if (id > maxNodeId) {
+					// Theoretically we shouldn't have the 'else' above, but unless the nodes are strictly
+					// in order of decreasing IDs it's not a problem and it saves a branch instruction
+					maxNodeId = id;
+				}
+
+				// Since we are rounding areas to fit on a low zoom boundary we
 				// can drop the bottom 8 bits of the lat and lon and then fit
 				// the whole lot into a single int.
 				int glat = co.getLatitude();
@@ -86,41 +84,39 @@ class DivisionParser extends DefaultHandler {
 
 				details.addToBounds(co);
 
-			} else if (qName.equals("way")) {
-				if (!mixed)
-					throw new EndOfNodesException();
+				if (nodeCount % STATUS_UPDATE_THRESHOLD == 0) {
+					System.out.println(Utils.format(nodeCount) + " nodes processed...");
+				}
+
+			} else if (!mixed && name.equals("way")) {
+				return true;
 			}
 		}
+		return false;
 	}
 
 	/**
 	 * Receive notification of the end of an element.
-	 *
-	 * @param uri The Namespace URI, or the empty string if the
-	 * element has no Namespace URI or if Namespace
-	 * processing is not being performed.
-	 * @param localName The local name (without prefix), or the
-	 * empty string if Namespace processing is not being
-	 * performed.
-	 * @param qName The qualified name (with prefix), or the
-	 * empty string if qualified names are not available.
-	 * @throws SAXException Any SAX exception, possibly
-	 * wrapping another exception.
-	 * @see ContentHandler#endElement
 	 */
-	public void endElement(String uri, String localName, String qName)
-			throws SAXException
+	public void endElement()
 	{
 		if (mode == MODE_NODE) {
-			if (qName.equals("node")) {
+			if (getParser().getName().equals("node")) {
 				mode = 0;
 			}
 		}
 	}
 
-	public void endDocument() throws SAXException {
-		if (mixed)
-			throw new EndOfNodesException();
+	public int getNodeCount() {
+		return nodeCount;
+	}
+
+	public int getMinNodeId() {
+		return minNodeId;
+	}
+
+	public int getMaxNodeId() {
+		return maxNodeId;
 	}
 
 	public SubArea getTotalArea() {
@@ -151,12 +147,6 @@ class DivisionParser extends DefaultHandler {
 		} else {
 			return (val- mask) & ~mask;
 		}
-	}
-
-	public void fatalError(SAXParseException e) throws SAXException {
-		System.err.println("Error at line " + e.getLineNumber() + ", col "
-				+ e.getColumnNumber());
-		super.fatalError(e);
 	}
 
 	public void setMixed(boolean mixed) {
