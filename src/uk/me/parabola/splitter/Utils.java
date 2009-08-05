@@ -15,12 +15,24 @@
  */
 package uk.me.parabola.splitter;
 
+import java.text.NumberFormat;
+
 /**
  * Some miscellaneous functions that are used within the .img code.
  *
  * @author Steve Ratcliffe
  */
 public class Utils {
+
+	private static final NumberFormat FORMATTER = NumberFormat.getIntegerInstance();
+
+	public static String format(int number) {
+		return FORMATTER.format(number);
+	}
+
+	public static String format(long number) {
+		return FORMATTER.format(number);
+	}
 
 	public static double toDegrees(int val) {
 		return (double) val / ((1 << 24) / 360.0);
