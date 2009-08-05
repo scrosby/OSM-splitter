@@ -54,45 +54,46 @@ public class AreaSplitter {
 					continue;
 				}
 
+				Area bounds = workarea.getBounds();
 				int size = list.size();
-				System.out.println("comparing size " + workarea.getSize());
 				if (size < max) {
 					workarea.clear();
 					continue;
 				}
-				System.out.println("Need to split");
+				System.out.println("Area " + bounds + " contains " + Utils.format(size) + " nodes");
 
 				notDone = true;
-				Area bounds = workarea.getBounds();
 				int height = bounds.getHeight();
 				int width1 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
 				int width2 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
 				int width = Math.max(width1,width2);
 				SubArea[] sub;
-				if (height > width)
+				String orientation;
+				if (height > width) {
+					orientation = "vertically";
 					sub = splitVert(workarea);
-				else
+				}
+				else {
+					orientation = "horizontally";
 					sub = splitHoriz(workarea);
+				}
 
 				it.set(sub[0]);
 				it.add(sub[1]);
+				System.out.println("split " + orientation + " into:");
+				System.out.println("     " + sub[0].getBounds() + " (" + Utils.format(sub[0].getSize()) + " nodes)");
+				System.out.println(" and " + sub[1].getBounds() + " (" + Utils.format(sub[1].getSize()) + " nodes)");
+				System.out.println();
 				workarea.clear();
 			}
 		}
-
-		for (SubArea a : l) 
-			System.out.println("a " + a.getBounds() + ", size=" + a.getSize());
-
 		return new AreaList(l);
 	}
 
 	private SubArea[] splitHoriz(SubArea base) {
-		System.out.println("split horiz size=" + base.getSize());
 		Area bounds = base.getBounds();
 		int left = bounds.getMinLong();
 		int right = bounds.getMaxLong();
-		System.out.println("left = " + left);
-		System.out.println("right = " + right);
 
 		SplitIntList baseCoords = base.getCoords();
 
@@ -107,14 +108,9 @@ public class AreaSplitter {
 			total += lon - left + 1;
 		}
 		int mid = limit(left, right, total / count);
-		System.out.println("mid = " + mid + ", tot=" + total + ", count=" + count);
 
-		System.out.println("in " + bounds);
 		Area b1 = new Area(bounds.getMinLat(), bounds.getMinLong(), bounds.getMaxLat(), mid);
 		Area b2 = new Area(bounds.getMinLat(), mid, bounds.getMaxLat(), bounds.getMaxLong());
-
-		System.out.println("out 1 " + b1);
-		System.out.println("out 2 " + b2);
 
 		SubArea a1 = new SubArea(b1);
 		SubArea a2 = new SubArea(b2);
@@ -129,12 +125,11 @@ public class AreaSplitter {
 			}
 		}
 
-		System.out.println("split sizes " + a1.getSize() +", " + a2.getSize());
 		return new SubArea[]{a1, a2};
 	}
 
 	private SubArea[] splitVert(SubArea base) {
-		System.out.println("split vert");
+
 		Area bounds = base.getBounds();
 		int top = bounds.getMaxLat();
 		int bot = bounds.getMinLat();
@@ -152,9 +147,6 @@ public class AreaSplitter {
 			total += lat - bot;
 		}
 		int mid = limit(bot, top, total / count);
-		System.out.println("bot = " + bot);
-		System.out.println("top = " + top);
-		System.out.println("mid = " + mid);
 
 		Area b1 = new Area(bounds.getMinLat(), bounds.getMinLong(), mid, bounds.getMaxLong());
 		Area b2 = new Area(mid, bounds.getMinLong(), bounds.getMaxLat(), bounds.getMaxLong());
@@ -173,8 +165,6 @@ public class AreaSplitter {
 				a2.add(co);
 			}
 		}
-
-		System.out.println("split sizes " + a1.getSize() +", " + a2.getSize());
 
 		return new SubArea[]{a1, a2};
 	}
