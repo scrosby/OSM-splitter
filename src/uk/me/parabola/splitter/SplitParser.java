@@ -16,14 +16,11 @@
  */
 package uk.me.parabola.splitter;
 
-import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
-
 import java.io.IOException;
 import java.util.Date;
+import java.util.BitSet;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * Parser for the second pass where we divide up the input file into the
@@ -31,7 +28,7 @@ import java.util.Date;
  *
  * @author Steve Ratcliffe
  */
-class SplitParser extends DefaultHandler {
+class SplitParser extends AbstractXppParser {
 	private static final int MODE_NODE = 1;
 	private static final int MODE_WAY = 2;
 	private static final int MODE_RELATION = 3;
@@ -45,47 +42,45 @@ class SplitParser extends DefaultHandler {
 
 	private StringNode currentNode;
 	private int currentNodeAreaSet;
+	private long nodeCount;
 
 	private StringWay currentWay;
 	private int currentWayAreaSet;
+	private long wayCount;
 
 	private StringRelation currentRelation;
-	private int currentRelAreaSet;
+	private BitSet currentRelAreaSet = new BitSet(255);
+	private long relationCount;
 
-	SplitParser(SubArea[] areas) {
+	SplitParser(SubArea[] areas) throws XmlPullParserException {
 		this.areas = areas;
+	}
+
+	public long getNodeCount() {
+		return nodeCount;
+	}
+
+	public long getWayCount() {
+		return wayCount;
+	}
+
+	public long getRelationCount() {
+		return relationCount;
 	}
 
 	/**
 	 * Receive notification of the start of an element.
-	 *
-	 * @param uri The Namespace URI, or the empty string if the
-	 * element has no Namespace URI or if Namespace
-	 * processing is not being performed.
-	 * @param localName The local name (without prefix), or the
-	 * empty string if Namespace processing is not being
-	 * performed.
-	 * @param qName The qualified name (with prefix), or the
-	 * empty string if qualified names are not available.
-	 * @param attributes The attributes attached to the element.  If
-	 * there are no attributes, it shall be an empty
-	 * Attributes object.
-	 * @throws SAXException Any SAX exception, possibly
-	 * wrapping another exception.
-	 * @see ContentHandler#startElement
 	 */
-	public void startElement(String uri, String localName,
-			String qName, Attributes attributes)
-			throws SAXException
+	public boolean startElement()
 	{
-
+		String name = getParser().getName();
 		if (mode == 0) {
-			if (qName.equals("node")) {
+			if (name.equals("node")) {
 				mode = MODE_NODE;
 
-				String id = attributes.getValue("id");
-				String slat = attributes.getValue("lat");
-				String slon = attributes.getValue("lon");
+				String id = getAttr("id");
+				String slat = getAttr("lat");
+				String slon = getAttr("lon");
 
 				double lat = Double.parseDouble(slat);
 				double lon = Double.parseDouble(slon);
@@ -94,32 +89,32 @@ class SplitParser extends DefaultHandler {
 				currentNode = new StringNode(coord, id, slat, slon);
 				currentNodeAreaSet = 0;
 
-			} else if (qName.equals("way")) {
+			} else if (name.equals("way")) {
 				mode = MODE_WAY;
-				String id = attributes.getValue("id");
+				String id = getAttr("id");
 				currentWay = new StringWay(id);
 				currentWayAreaSet = 0;
 				
-			} else if (qName.equals("relation")) {
+			} else if (name.equals("relation")) {
 				mode = MODE_RELATION;
-				String id = attributes.getValue("id");
+				String id = getAttr("id");
 				currentRelation = new StringRelation(id);
-				currentRelAreaSet = 0;
+				currentRelAreaSet.clear();
 			}
 		} else if (mode == MODE_NODE) {
-			if (qName.equals("tag")) {
-				currentNode.addTag(attributes.getValue("k"), attributes.getValue("v"));
+			if (name.equals("tag")) {
+				currentNode.addTag(getAttr("k"), getAttr("v"));
 			}
 		} else if (mode == MODE_WAY) {
-			if (qName.equals("nd")) {
-				String sid = attributes.getValue("ref");
+			if (name.equals("nd")) {
+				String sid = getAttr("ref");
 
 				// Get the list of areas that the node is in.  A node may be in
 				// more than one area because of overlap.
 				int set = coords.get(Integer.parseInt(sid));
 
 				// add the list of areas to the currentWayAreaSet
-				if (currentWayAreaSet == set) {
+				if (currentWayAreaSet == set || set == 0) {
 					// nothing to do, this will be the most common case
 				} else if (currentWayAreaSet == 0) {
 					currentWayAreaSet = set;
@@ -135,17 +130,16 @@ class SplitParser extends DefaultHandler {
 				}
 
 				currentWay.addRef(sid);
-			} else if (qName.equals("tag")) {
-				currentWay.addTag(attributes.getValue("k"),
-						attributes.getValue("v"));
+			} else if (name.equals("tag")) {
+				currentWay.addTag(getAttr("k"), getAttr("v"));
 			}
 		} else if (mode == MODE_RELATION) {
-			if (qName.equals("tag")) {
-				currentRelation.addTag(attributes.getValue("k"), attributes.getValue("v"));
-			} else if (qName.equals("member")) {
-				String type = attributes.getValue("type");
-				String ref = attributes.getValue("ref");
-				currentRelation.addMember(type, ref, attributes.getValue("role"));
+			if (name.equals("tag")) {
+				currentRelation.addTag(getAttr("k"), getAttr("v"));
+			} else if (name.equals("member")) {
+				String type = getAttr("type");
+				String ref = getAttr("ref");
+				currentRelation.addMember(type, ref, getAttr("role"));
 
 				int iref = Integer.parseInt(ref);
 				int set = 0;
@@ -154,67 +148,54 @@ class SplitParser extends DefaultHandler {
 				} else if ("way".equals(type)) {
 					set = ways.get(iref);
 				}
-				if (currentRelAreaSet == set) {
-					// nothing to do
-				} else if (currentRelAreaSet == 0) {
-					currentRelAreaSet = set;
-				} else {
+				if (set != 0) {
 					int mask = 0xff;
 					for (int slot = 0; slot < 4; slot++, mask <<= 8) {
 						int val = (set & mask) >>> (slot * 8);
 						if (val == 0)
 							break;
-						// Now find it in the destination set or add it
-						currentRelAreaSet = addToSet(currentRelAreaSet, val, "Relation " + currentRelation.getId());
+						currentRelAreaSet.set(val - 1);
 					}
 				}
 			}
 		}
+		return false;
 	}
 
 	/**
 	 * Receive notification of the end of an element.
-	 *
-	 * @param uri The Namespace URI, or the empty string if the
-	 * element has no Namespace URI or if Namespace
-	 * processing is not being performed.
-	 * @param localName The local name (without prefix), or the
-	 * empty string if Namespace processing is not being
-	 * performed.
-	 * @param qName The qualified name (with prefix), or the
-	 * empty string if qualified names are not available.
-	 * @throws SAXException Any SAX exception, possibly
-	 * wrapping another exception.
-	 * @see ContentHandler#endElement
 	 */
-	public void endElement(String uri, String localName, String qName)
-			throws SAXException
+	public void endElement() throws XmlPullParserException
 	{
+		String name = getParser().getName();
 		if (mode == MODE_NODE) {
-			if (qName.equals("node")) {
+			if (name.equals("node")) {
 				mode = 0;
+				nodeCount++;
 				try {
 					writeNode(currentNode);
 				} catch (IOException e) {
-					throw new SAXException("failed to write", e);
+					throw new XmlPullParserException("failed to write node", getParser(), e);
 				}
 			}
 		} else if (mode == MODE_WAY) {
-			if (qName.equals("way")) {
+			if (name.equals("way")) {
 				mode = 0;
+				wayCount++;
 				try {
 					writeWay(currentWay);
 				} catch (IOException e) {
-					throw new SAXException("failed to write way", e);
+					throw new XmlPullParserException("failed to write way", getParser(), e);
 				}
 			}
 		} else if (mode == MODE_RELATION) {
-			if (qName.equals("relation")) {
+			if (name.equals("relation")) {
 				mode = 0;
+				relationCount++;
 				try {
 					writeRelation(currentRelation);
 				} catch (IOException e) {
-					throw new SAXException("failed to write relation", e);
+					throw new XmlPullParserException("failed to write relation", getParser(), e);
 				}
 			}
 		}
@@ -240,15 +221,11 @@ class SplitParser extends DefaultHandler {
 	private void writeRelation(StringRelation relation) throws IOException {
 		if (!seenRel) {
 			seenRel = true;
-			System.out.println("starting rels " + new Date());
+			System.out.println("Writing relations " + new Date());
 		}
-		for (int slot = 0; slot < 4; slot++) {
-			int n = (currentRelAreaSet >> (slot * 8)) & 0xff;
-			if (n == 0)
-				break;
-
+		for (int n = currentRelAreaSet.nextSetBit(0); n >= 0; n = currentRelAreaSet.nextSetBit(n + 1)) {
 			// if n is out of bounds, then something has gone wrong
-			areas[n - 1].write(relation);
+			areas[n].write(relation);
 		}
 	}
 
@@ -256,7 +233,7 @@ class SplitParser extends DefaultHandler {
 	private void writeWay(StringWay way) throws IOException {
 		if (!seenWay) {
 			seenWay = true;
-			System.out.println("starting ways " + new Date());
+			System.out.println("Writing ways " + new Date());
 		}
 		for (int slot = 0; slot < 4; slot++) {
 			int n = (currentWayAreaSet >> (slot * 8)) & 0xff;
@@ -266,7 +243,10 @@ class SplitParser extends DefaultHandler {
 			// if n is out of bounds, then something has gone wrong
 			areas[n - 1].write(way);
 		}
-		ways.put(way.getId(), currentWayAreaSet);
+		// Only remember the way if it's in one or more of the areas we care about
+		if (currentWayAreaSet != 0) {
+			ways.put(way.getId(), currentWayAreaSet);
+		}
 	}
 
 	private void writeNode(StringNode node) throws IOException {
@@ -275,7 +255,7 @@ class SplitParser extends DefaultHandler {
 			boolean found = a.write(node);
 			if (found) {
 				if (currentNodeAreaSet == n) {
-					// Do nothing, already in, the normal case
+					System.out.println("Didn't think this could happen?! " + node.getStringId() + " " + n);
 				} else if (currentNodeAreaSet == 0) {
 					currentNodeAreaSet = n;
 				} else {
@@ -284,13 +264,9 @@ class SplitParser extends DefaultHandler {
 				}
 			}
 		}
-		coords.put(node.getId(), currentNodeAreaSet);
-	}
-
-
-	public void fatalError(SAXParseException e) throws SAXException {
-		System.err.println("Error at line " + e.getLineNumber() + ", col "
-				+ e.getColumnNumber());
-		super.fatalError(e);
+		// Only remember the node if it's in one or more of the areas we care about
+		if (currentNodeAreaSet != 0) {
+			coords.put(node.getId(), currentNodeAreaSet);
+		}
 	}
 }
