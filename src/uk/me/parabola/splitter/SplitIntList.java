@@ -9,7 +9,7 @@ package uk.me.parabola.splitter;
  * array and momentarily require 2x the amount of memory.
  */
 public class SplitIntList {
-	private static final int DEFAULT_SEGMENT_SIZE = 100000;
+	private static final int DEFAULT_SEGMENT_SIZE = 1000000;
 
 	private final int segmentSize;
 	private int[][] segments = new int[0][];
