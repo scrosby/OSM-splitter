@@ -24,9 +24,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -35,7 +33,7 @@ import java.util.regex.Pattern;
 /**
  * A list of areas.  It can be read and written to a file.
  */
-public class AreaList implements Iterable<SubArea> {
+public class AreaList {
 	private SubArea[] areas;
 	private static final SubArea[] SUB_AREA = new SubArea[0];
 
@@ -133,10 +131,6 @@ public class AreaList implements Iterable<SubArea> {
 			if (r != null)
 				r.close();
 		}
-	}
-
-	public Iterator<SubArea> iterator() {
-		return Arrays.asList(areas).iterator();
 	}
 
 	public SubArea[] getAreas() {
