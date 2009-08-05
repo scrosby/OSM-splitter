@@ -16,26 +16,28 @@
  */
 package uk.me.parabola.splitter;
 
-import org.apache.tools.bzip2.CBZip2InputStream;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.tools.bzip2.CBZip2InputStream;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * Splitter for OSM files with the purpose of providing input files for mkgmap.
@@ -46,7 +48,11 @@ import java.util.zip.GZIPInputStream;
  */
 public class Main {
 
-	private List<String> filenames = new LinkedList<String>();
+	// We can only process a maximum of 255 areas at a time because we
+	// compress an area ID into 8 bits to save memory (and 0 is reserved)
+	private static final int MAX_AREAS_PER_PASS = 255;
+
+	private List<String> filenames = new ArrayList<String>();
 
 	// Traditional default, but please use a different one!
 	private int mapid = 63240001;
@@ -66,28 +72,30 @@ public class Main {
 		Main m = new Main();
 
 		long start = System.currentTimeMillis();
-		System.out.println("start " + new Date());
+		System.out.println("Time started: " + new Date());
 
 		try {
 			m.split(args);
 		} catch (IOException e) {
 			System.err.println("Error opening or reading file " + e);
-		} catch (SAXException e) {
+		} catch (XmlPullParserException e) {
 			System.err.println("Error parsing xml from file " + e);
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		}
 
-		System.out.println("Total time " + (System.currentTimeMillis() - start)/1000 + "s");
+		System.out.println("Time finished: " + new Date());
+		System.out.println("Total time taken: " + (System.currentTimeMillis() - start)/1000 + "s");
 	}
 
-	private void split(String[] args) throws IOException, SAXException, ParserConfigurationException {
+	private void split(String[] args) throws IOException, ParserConfigurationException, XmlPullParserException {
 		readArgs(args);
-		if (areaList == null)
-			calculateAndSplit();
-		else
-			justSplit();
-		System.out.println("Finish " + new Date());
+
+		if (areaList == null) {
+			areaList = calculateAreas();
+		}
+
+		writeAreas(areaList);
 		writeArgsFile();
 	}
 
@@ -136,82 +144,83 @@ public class Main {
 	 * Calculate the areas that we are going to split into by getting the total area and
 	 * then subdividing down until each area has at most max-nodes nodes in it.
 	 */
-	private void calculateAndSplit() throws IOException,
-			SAXException, ParserConfigurationException
-	{
+	private AreaList calculateAreas() throws IOException, XmlPullParserException {
 		if (filenames.isEmpty())
 			throw new FileNotFoundException("No filename given");
-
-		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
-		SAXParser parser = parserFactory.newSAXParser();
 
 		DivisionParser xmlHandler = new DivisionParser();
 		xmlHandler.setMixed(mixed);
 
 		for (String filename : filenames) {
-			InputStream is = openFile(filename);
+			System.out.println("Processing " + filename);
+			Reader reader = openFile(filename);
+			xmlHandler.setReader(reader);
 			try {
 				// First pass, read nodes and split into areas.
-				parser.parse(is, xmlHandler);
-			} catch (EndOfNodesException e) {
-				// Finished reading the nodes, rest of file ignored.
+				xmlHandler.parse();
 			} finally {
 				// Release resources
-				is.close();
+				reader.close();
 			}
 		}
+		System.out.println("A total of " + xmlHandler.getNodeCount() +
+						" nodes were processed in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
+		System.out.println("Min node ID = " + xmlHandler.getMinNodeId());
+		System.out.println("Max node ID = " + xmlHandler.getMaxNodeId());
 
-		// Now split the area up
+		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
 		SubArea totalArea = xmlHandler.getTotalArea();
 		AreaSplitter splitter = new AreaSplitter();
 		areaList = splitter.split(totalArea, maxNodes);
 
 		// Set the mapid's
-		for (SubArea a : areaList)
+		for (SubArea a : areaList.getAreas())
 			a.setMapid(mapid++);
 
 		areaList.write("areas.list");
 
-		// Finally write it out, this re-reads the file from scratch.
-		writeAreas(areaList);
+		return areaList;
 	}
 
 	/**
-	 * Just split based on a previously prepared area list file.
-	 */
-	private void justSplit() throws IOException, SAXException, ParserConfigurationException {
-		writeAreas(areaList);
-	}
-
-	/**
-	 * Second pass, we have the areas so read in the file again and write out each element
-	 * to the files that should contain it.
+	 * Second pass, we have the areas so parse the file(s) again and write out each element
+	 * to the file(s) that should contain it.
 	 * @param areaList Area list determined on the first pass.
 	 */
-	private void writeAreas(AreaList areaList) throws
-			IOException, SAXException, ParserConfigurationException
-	{
-		System.out.println("starting write out  " + new Date());
-		
-		for (SubArea a : areaList)
-			a.initForWrite(overlapAmount);
+	private void writeAreas(AreaList areaList) throws IOException, XmlPullParserException {
+		System.out.println("Writing out split osm files " + new Date());
 
-		try {
-			SAXParserFactory parserFactory = SAXParserFactory.newInstance();
-			SAXParser parser = parserFactory.newSAXParser();
-
-			SplitParser xmlHandler = new SplitParser(areaList.getAreas());
-			for (String filename : filenames) {
-				InputStream is = openFile(filename);
-				parser.parse(is, xmlHandler);
-				// Release resources
-				is.close();
-			}
-		} finally {
-			for (SubArea a : areaList)
-				a.finishWrite();
+		SubArea[] allAreas = areaList.getAreas();
+		if (allAreas.length > MAX_AREAS_PER_PASS) {
+			System.out.println("There are " + allAreas.length + " areas. They will be processed " + MAX_AREAS_PER_PASS + " at a time");
 		}
 
+		for (int i = 0; i <= (allAreas.length / MAX_AREAS_PER_PASS); i++) {
+			SubArea[] currentAreas = new SubArea[Math.min(MAX_AREAS_PER_PASS, allAreas.length - i * MAX_AREAS_PER_PASS)];
+			System.arraycopy(allAreas, i * MAX_AREAS_PER_PASS, currentAreas, 0, currentAreas.length);
+
+			for (SubArea a : currentAreas)
+				a.initForWrite(overlapAmount);
+
+			try {
+				SplitParser xmlHandler = new SplitParser(currentAreas);
+				for (String filename : filenames) {
+					Reader reader = openFile(filename);
+					xmlHandler.setReader(reader);
+					try {
+						xmlHandler.parse();
+					} finally {
+						reader.close();
+					}
+				}
+				System.out.println("Wrote " + Utils.format(xmlHandler.getNodeCount()) + " nodes, " +
+																			Utils.format(xmlHandler.getWayCount()) + " ways, " +
+																			Utils.format(xmlHandler.getRelationCount()) + " relations");
+			} finally {
+				for (SubArea a : currentAreas)
+					a.finishWrite();
+			}
+		}
 	}
 
 	/**
@@ -241,7 +250,7 @@ public class Main {
 		w.println();
 		w.println("# Following is a list of map tiles.  Add a suitable description");
 		w.println("# for each one.");
-		for (SubArea a : areaList) {
+		for (SubArea a : areaList.getAreas()) {
 			w.println();
 			w.format("mapname: %d\n", a.getMapid());
 			w.println("description: OSM Map");
@@ -259,23 +268,22 @@ public class Main {
 	 * @return A stream that will read the file, positioned at the beginning.
 	 * @throws FileNotFoundException If the file cannot be opened for any reason.
 	 */
-	private InputStream openFile(String name) throws FileNotFoundException {
+	private Reader openFile(String name) throws IOException {
 		InputStream is = new FileInputStream(name);
 		if (name.endsWith(".gz")) {
 			try {
 				is = new GZIPInputStream(is);
 			} catch (IOException e) {
-				throw new FileNotFoundException( "Could not read as gz compressed file");
+				throw new IOException( "Could not read " + name + " as a gz compressed file", e);
 			}
 		}
 		if (name.endsWith(".bz2")) {
 			try {
 				is.read(); is.read(); is = new CBZip2InputStream(is);
-			} catch (Exception e) {
-				throw new FileNotFoundException( "Could not read as bz2 compressed file");
+			} catch (IOException e) {
+				throw new IOException( "Could not read " + name + " as a bz2 compressed file", e);
 			}
 		}
-		return is;
+		return new InputStreamReader(is, Charset.forName("UTF-8"));
 	}
-
 }
