@@ -18,6 +18,8 @@ package uk.me.parabola.splitter;
 
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Used to split the SubArea's down into roughly equal sized pieces.
@@ -38,15 +40,15 @@ public class AreaSplitter {
 	 * @return An array of areas.  Each will have less than the specified number of nodes.
 	 */
 	public AreaList split(SubArea area, int max) {
-		LinkedList<SubArea> l = new LinkedList<SubArea>();
+		List<SubArea> areas = new ArrayList<SubArea>();
 
-		l.add(area);
+		areas.add(area);
 
 		boolean notDone = true;
 		while (notDone) {
 
 			notDone = false;
-			ListIterator<SubArea> it = l.listIterator();
+			ListIterator<SubArea> it = areas.listIterator();
 			while (it.hasNext()) {
 				SubArea workarea = it.next();
 				SplitIntList list = workarea.getCoords();
@@ -87,7 +89,7 @@ public class AreaSplitter {
 				workarea.clear();
 			}
 		}
-		return new AreaList(l);
+		return new AreaList(areas);
 	}
 
 	private SubArea[] splitHoriz(SubArea base) {
