@@ -16,10 +16,9 @@
  */
 package uk.me.parabola.splitter;
 
-import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
 /**
  * Used to split the SubArea's down into roughly equal sized pieces.
