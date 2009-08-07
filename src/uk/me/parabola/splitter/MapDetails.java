@@ -30,11 +30,10 @@ public class MapDetails {
 	/**
 	 * Add the given point to the total bounds for the map.
 	 *
-	 * @param p The coordinates of the point to add.
+	 * @param lat the latitude, in map units.
+	 * @param lon the longitude, in map units.
 	 */
-	public void addToBounds(Coord p) {
-		int lat = p.getLatitude();
-		int lon = p.getLongitude();
+	public void addToBounds(int lat, int lon) {
 		if (lat < minLat)
 			minLat = lat;
 		if (lat > maxLat)
@@ -53,5 +52,4 @@ public class MapDetails {
 	public Area getBounds() {
 		return new Area(minLat, minLon, maxLat, maxLon);
 	}
-
 }

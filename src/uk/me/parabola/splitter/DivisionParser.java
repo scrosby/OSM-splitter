@@ -63,26 +63,25 @@ class DivisionParser extends AbstractXppParser {
 				int id = Integer.parseInt(getAttr("id"));
 				double lat = Double.parseDouble(getAttr("lat"));
 				double lon = Double.parseDouble(getAttr("lon"));
-				Coord co = new Coord(lat, lon);
 
 				if (id < minNodeId) {
 					minNodeId = id;
 				} else if (id > maxNodeId) {
 					// Theoretically we shouldn't have the 'else' above, but unless the nodes are strictly
-					// in order of decreasing IDs it's not a problem and it saves a branch instruction
+					// in order of decreasing IDs it's not a problem and it saves a comparison instruction
 					maxNodeId = id;
 				}
 
 				// Since we are rounding areas to fit on a low zoom boundary we
 				// can drop the bottom 8 bits of the lat and lon and then fit
 				// the whole lot into a single int.
-				int glat = co.getLatitude();
-				int glon = co.getLongitude();
+				int glat = Utils.toMapUnit(lat);
+				int glon = Utils.toMapUnit(lon);
 				int coord = ((glat << 8) & 0xffff0000) + ((glon >> 8) & 0xffff);
 
 				coords.add(coord);
 
-				details.addToBounds(co);
+				details.addToBounds(glat, glon);
 
 				if (nodeCount % STATUS_UPDATE_THRESHOLD == 0) {
 					System.out.println(Utils.format(nodeCount) + " nodes processed...");
