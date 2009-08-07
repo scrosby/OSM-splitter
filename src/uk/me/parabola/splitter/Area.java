@@ -85,11 +85,11 @@ public class Area {
 				;
 	}
 
-	public boolean contains(Coord co) {
-		return co.getLatitude() >= minLat
-				&& co.getLatitude() <= maxLat
-				&& co.getLongitude() >= minLong
-				&& co.getLongitude() <= maxLong;
+	public boolean contains(int lat, int lon) {
+		return lat >= minLat
+				&& lat <= maxLat
+				&& lon >= minLong
+				&& lon <= maxLong;
 	}
 
 }

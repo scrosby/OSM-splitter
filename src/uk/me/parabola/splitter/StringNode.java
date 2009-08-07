@@ -23,19 +23,25 @@ package uk.me.parabola.splitter;
  * @author Steve Ratcliffe
  */
 public class StringNode extends Element {
-	private final Coord coord;
+	private final int lat;
+	private final int lon;
 	private final String stringLat;
 	private final String stringLon;
 
-	public StringNode(Coord co, String stringId, String stringLat, String stringLon) {
+	public StringNode(int lat, int lon, String stringId, String stringLat, String stringLon) {
 		super(stringId);
-		coord = co;
+		this.lat = lat;
+		this.lon = lon;
 		this.stringLat = stringLat;
 		this.stringLon = stringLon;
 	}
 
-	public Coord getLocation() {
-		return coord;
+	public int getLat() {
+		return lat;
+	}
+
+	public int getLon() {
+		return lon;
 	}
 
 	public String getStringLat() {

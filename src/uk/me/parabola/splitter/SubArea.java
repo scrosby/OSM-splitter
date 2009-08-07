@@ -127,7 +127,7 @@ public class SubArea {
 	}
 
 	public boolean write(StringNode node) throws IOException {
-		if (extendedBounds.contains(node.getLocation())) {
+		if (extendedBounds.contains(node.getLat(), node.getLon())) {
 			writer.append("<node id='");
 			writer.append(node.getStringId());
 			writer.append("' lat='");

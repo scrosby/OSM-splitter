@@ -17,8 +17,8 @@
 package uk.me.parabola.splitter;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.BitSet;
+import java.util.Date;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -84,9 +84,8 @@ class SplitParser extends AbstractXppParser {
 
 				double lat = Double.parseDouble(slat);
 				double lon = Double.parseDouble(slon);
-				Coord coord = new Coord(lat, lon);
 
-				currentNode = new StringNode(coord, id, slat, slon);
+				currentNode = new StringNode(Utils.toMapUnit(lat), Utils.toMapUnit(lon), id, slat, slon);
 				currentNodeAreaSet = 0;
 
 			} else if (name.equals("way")) {
