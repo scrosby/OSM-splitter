@@ -1,6 +1,3 @@
-/**
- * Copyright © 2008 Chris Miller
- */
 package uk.me.parabola.splitter;
 
 import org.testng.annotations.Test;

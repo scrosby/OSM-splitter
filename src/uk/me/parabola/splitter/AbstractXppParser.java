@@ -1,6 +1,3 @@
-/**
- * Copyright © 2009 Chris Miller
- */
 package uk.me.parabola.splitter;
 
 import java.io.Reader;
