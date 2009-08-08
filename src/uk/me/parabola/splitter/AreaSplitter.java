@@ -61,30 +61,21 @@ public class AreaSplitter {
 					workarea.clear();
 					continue;
 				}
-				System.out.println("Area " + bounds + " contains " + Utils.format(size) + " nodes");
-
 				notDone = true;
 				int height = bounds.getHeight();
 				int width1 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
 				int width2 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
 				int width = Math.max(width1,width2);
 				SubArea[] sub;
-				String orientation;
 				if (height > width) {
-					orientation = "vertically";
 					sub = splitVert(workarea);
 				}
 				else {
-					orientation = "horizontally";
 					sub = splitHoriz(workarea);
 				}
 
 				it.set(sub[0]);
 				it.add(sub[1]);
-				System.out.println("split " + orientation + " into:");
-				System.out.println("     " + sub[0].getBounds() + " (" + Utils.format(sub[0].getSize()) + " nodes)");
-				System.out.println(" and " + sub[1].getBounds() + " (" + Utils.format(sub[1].getSize()) + " nodes)");
-				System.out.println();
 				workarea.clear();
 			}
 		}

@@ -177,6 +177,11 @@ public class Main {
 		for (SubArea a : areaList.getAreas())
 			a.setMapid(mapid++);
 
+		System.out.println(areaList.getAreas().length + " areas generated:");
+		for (SubArea a : areaList.getAreas()) {
+			System.out.println("Area " + a.getMapid() + " contains " + Utils.format(a.getSize()) + " nodes " + a.getBounds());
+		}
+
 		areaList.write("areas.list");
 
 		return areaList;
