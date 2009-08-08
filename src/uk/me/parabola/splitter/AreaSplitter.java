@@ -161,7 +161,7 @@ public class AreaSplitter {
 		return new SubArea[]{a1, a2};
 	}
 
-	private int extractLatitude(Integer value) {
+	private int extractLatitude(int value) {
 		return ((value & 0xffff0000) >> 8);
 	}
 
