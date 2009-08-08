@@ -172,6 +172,7 @@ public class Main {
 						" nodes were processed in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
 		System.out.println("Min node ID = " + xmlHandler.getMinNodeId());
 		System.out.println("Max node ID = " + xmlHandler.getMaxNodeId());
+		System.out.println("Time: " + new Date());
 
 		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
 		SubArea totalArea = xmlHandler.getTotalArea();
