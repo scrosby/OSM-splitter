@@ -50,7 +50,7 @@ public class Main {
 
 	// We can only process a maximum of 255 areas at a time because we
 	// compress an area ID into 8 bits to save memory (and 0 is reserved)
-	private static final int MAX_AREAS_PER_PASS = 255;
+	private int maxAreasPerPass = 255;
 
 	private List<String> filenames = new ArrayList<String>();
 
@@ -112,7 +112,7 @@ public class Main {
 				if (m.find()) {
 					String key = m.group(1);
 					String val = m.group(2);
-					System.out.printf("key %s/ val %s\n", key, val);
+					System.out.printf("%s = %s\n", key, val);
 					props.setProperty(key, val);
 				}
 			} else {
@@ -126,6 +126,11 @@ public class Main {
 		overlapAmount = config.getProperty("overlap", overlapAmount);
 		maxNodes = config.getProperty("max-nodes", maxNodes);
 		mixed = config.getProperty("mixed", false);
+		maxAreasPerPass = config.getProperty("max-areas", maxAreasPerPass);
+		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
+			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
+			maxAreasPerPass = 255;
+		}
 
 		if (config.containsKey("split-file")) {
 			String splitFile = config.getProperty("split-file");
@@ -196,18 +201,27 @@ public class Main {
 		System.out.println("Writing out split osm files " + new Date());
 
 		SubArea[] allAreas = areaList.getAreas();
-		if (allAreas.length > MAX_AREAS_PER_PASS) {
-			System.out.println("There are " + allAreas.length + " areas. They will be processed " + MAX_AREAS_PER_PASS + " at a time");
+
+		int passesRequired = (int) Math.ceil((double) allAreas.length / (double) maxAreasPerPass);
+		maxAreasPerPass = (int) Math.ceil((double) allAreas.length / (double) passesRequired);
+
+		if (passesRequired > 1) {
+			System.out.println("Processing " + allAreas.length + " areas in " + passesRequired + " passes, " + maxAreasPerPass + " areas at a time");
+		} else {
+			System.out.println("Processing " + allAreas.length + " areas in a single pass");
 		}
 
-		for (int i = 0; i <= (allAreas.length / MAX_AREAS_PER_PASS); i++) {
-			SubArea[] currentAreas = new SubArea[Math.min(MAX_AREAS_PER_PASS, allAreas.length - i * MAX_AREAS_PER_PASS)];
-			System.arraycopy(allAreas, i * MAX_AREAS_PER_PASS, currentAreas, 0, currentAreas.length);
+		for (int i = 0; i < passesRequired; i++) {
+			SubArea[] currentAreas = new SubArea[Math.min(maxAreasPerPass, allAreas.length - i * maxAreasPerPass)];
+			System.arraycopy(allAreas, i * maxAreasPerPass, currentAreas, 0, currentAreas.length);
 
 			for (SubArea a : currentAreas)
 				a.initForWrite(overlapAmount);
 
 			try {
+				System.out.println("Starting pass " + (i + 1) + ", processing " + currentAreas.length +
+													 " areas (" + currentAreas[0].getMapid() + " to " +
+								           currentAreas[currentAreas.length - 1].getMapid() + ')');
 				SplitParser xmlHandler = new SplitParser(currentAreas);
 				for (String filename : filenames) {
 					Reader reader = openFile(filename);
