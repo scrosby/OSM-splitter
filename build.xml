@@ -17,7 +17,7 @@
     Author: Steve Ratcliffe
     Create date: 3 Jan 2008
 -->
-<project name="splitter" default="build" basedir=".">
+<project name="splitter" default="dist" basedir=".">
 
   <!-- Init -->
   <property name="top" value="."/>
