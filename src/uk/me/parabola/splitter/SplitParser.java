@@ -52,15 +52,17 @@ class SplitParser extends AbstractXppParser {
 	private long nodeCount;
 
 	private StringWay currentWay;
-	private BitSet currentWayAreaSet = new BitSet(255);
+	private BitSet currentWayAreaSet;
 	private long wayCount;
 
 	private StringRelation currentRelation;
-	private BitSet currentRelAreaSet = new BitSet(255);
+	private BitSet currentRelAreaSet;
 	private long relationCount;
 
 	SplitParser(SubArea[] areas) throws XmlPullParserException {
 		this.areas = areas;
+		currentWayAreaSet = new BitSet(areas.length);
+		currentRelAreaSet = new BitSet(areas.length);
 	}
 
 	public long getNodeCount() {
@@ -185,7 +187,7 @@ class SplitParser extends AbstractXppParser {
 				// Copy bits from bigSet to currentRelAreaSet
 				for (int i = 0; i < bigSet.length; i++) {
 					for (int j = 0; j < 64; j++) {
-						if ((bigSet[i] & (1 << (j % 64))) != 0) {
+						if ((bigSet[i] & (1L << (j % 64))) != 0) {
 							currentRelAreaSet.set(i * 64 + j);
 						}
 					}
@@ -290,7 +292,7 @@ class SplitParser extends AbstractXppParser {
 				long[] set = new long[currentWayAreaSet.size() / 64];
 				for (int n = currentWayAreaSet.nextSetBit(0); n >= 0; n = currentWayAreaSet.nextSetBit(n + 1)) {
 					areas[n].write(currentWay);
-					set[n / 64] |= 1 << (n % 64);
+					set[n / 64] |= 1L << (n % 64);
 				}
 				bigWays.put(currentWay.getId(), set);
 			}
@@ -298,13 +300,13 @@ class SplitParser extends AbstractXppParser {
 	}
 
 	private void writeNode() throws IOException {
-		for (int n = 1; n <= areas.length; n++) {
-			boolean found = areas[n - 1].write(currentNode);
+		for (int n = 0; n < areas.length; n++) {
+			boolean found = areas[n].write(currentNode);
 			if (found) {
 				if (currentNodeAreaSet == 0) {
-					currentNodeAreaSet = n;
+					currentNodeAreaSet = n + 1;
 				} else {
-					currentNodeAreaSet = addToSet(currentNodeAreaSet, n, currentNode.getStringId());
+					currentNodeAreaSet = addToSet(currentNodeAreaSet, n + 1, currentNode.getStringId());
 				}
 			}
 		}
