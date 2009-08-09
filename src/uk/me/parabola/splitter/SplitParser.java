@@ -184,8 +184,8 @@ class SplitParser extends AbstractXppParser {
 			} else if ((bigSet = bigWays.get(iref)) != null) {
 				// Copy bits from bigSet to currentRelAreaSet
 				for (int i = 0; i < bigSet.length; i++) {
-					for (int j = 0; i < 64; j++) {
-						if ((bigSet[i / 64] & (1 << (j % 64))) != 0) {
+					for (int j = 0; j < 64; j++) {
+						if ((bigSet[i] & (1 << (j % 64))) != 0) {
 							currentRelAreaSet.set(i * 64 + j);
 						}
 					}
