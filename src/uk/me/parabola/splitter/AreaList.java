@@ -112,7 +112,6 @@ public class AreaList {
 				matcher.find();
 				String mapid = matcher.group(1);
 
-				System.out.println("g3 " + matcher.group(3));
 				Area b = new Area(
 						Integer.decode(matcher.group(2)),
 						Integer.decode(matcher.group(3)),
@@ -141,11 +140,7 @@ public class AreaList {
 		System.out.println("Areas read from file");
 		for (SubArea a : areas) {
 			Area b = a.getBounds();
-			System.out.printf("%d: %x,%x %x,%x\n",
-					a.getMapid(),
-					b.getMinLat(), b.getMinLong(),
-					b.getMaxLat(), b.getMaxLong()
-			);
+			System.out.println(a.getMapid() + " " + b.toString());
 		}
 	}
 }
