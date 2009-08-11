@@ -57,4 +57,23 @@ public class Utils {
 		return toDegrees(latitude) * Math.PI / 180;
 	}
 
+	/**
+	 * Rounds an integer down to the nearest multiple of {@code 2^shift}.
+	 * @param val the integer to round down.
+	 * @param shift the power of two to round down to.
+	 * @return the rounded integer.
+	 */
+	public static int roundDown(int val, int shift) {
+		return val >>> shift << shift;
+	}
+
+	/**
+	 * Rounds an integer up to the nearest multiple of {@code 2^shift}.
+	 * @param val the integer to round up.
+	 * @param shift the power of two to round up to.
+	 * @return the rounded integer.
+	 */
+	public static int roundUp(int val, int shift) {
+		return (val + (1 << shift) - 1) >>> shift << shift;
+	}
 }

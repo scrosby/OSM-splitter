@@ -126,26 +126,8 @@ class DivisionParser extends AbstractXppParser {
 	}
 
 	private Area round(Area b) {
-		return new Area(roundDown(b.getMinLat()), roundDown(b.getMinLong()),
-				roundUp(b.getMaxLat()), roundUp(b.getMaxLong()));
-	}
-
-	private int roundUp(int val) {
-		int mask = (1 << SHIFT) - 1;
-		if (val > 0) {
-			return (val + mask) & ~mask;
-		} else {
-			return val & ~mask;
-		}
-	}
-
-	private int roundDown(int val) {
-		int mask = (1 << SHIFT) - 1;
-		if (val > 0) {
-			return (val) & ~mask;
-		} else {
-			return (val- mask) & ~mask;
-		}
+		return new Area(Utils.roundDown(b.getMinLat(), SHIFT), Utils.roundDown(b.getMinLong(), SHIFT),
+				Utils.roundUp(b.getMaxLat(), SHIFT), Utils.roundUp(b.getMaxLong(), SHIFT));
 	}
 
 	public void setMixed(boolean mixed) {
