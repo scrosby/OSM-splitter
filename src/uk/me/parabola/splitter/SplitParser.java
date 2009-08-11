@@ -328,7 +328,7 @@ class SplitParser extends AbstractXppParser {
 			val <<= 8;
 		}
 		// it was not added
-		System.err.println("Node " + desc + " in too many areas.");
+		System.err.println("Node " + desc + " in too many areas. Already in areas 0x" + Integer.toHexString(set) + ", trying to add area 0x" + Integer.toHexString(v));
 		return set;
 	}
 }
