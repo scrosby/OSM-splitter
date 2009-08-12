@@ -27,7 +27,11 @@ import java.util.ListIterator;
  * @author Steve Ratcliffe
  */
 public class AreaSplitter {
-	private static final int SHIFT = 11;
+	private final int shift;
+
+	public AreaSplitter(int resolution) {
+		shift = 24 - resolution;
+	}
 
 	/**
 	 * Split a single area which would normally be the complete area of the map.
@@ -56,18 +60,31 @@ public class AreaSplitter {
 				}
 
 				Area bounds = workarea.getBounds();
+
+				// If there's already less than max-nodes in the area we don't split it further
 				int size = list.size();
 				if (size < max) {
 					workarea.clear();
 					continue;
 				}
-				notDone = true;
 				int height = bounds.getHeight();
-				int width1 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
-				int width2 = (int) (bounds.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
-				int width = Math.max(width1,width2);
+				int width = bounds.getWidth();
+
+				// If we've already split the area down to the minimum allowable size, we don't split it further
+				boolean minHeight = height <= 2 << shift;
+				boolean minWidth = width <= 2 << shift;
+				if (minHeight && minWidth) {
+					System.out.println("Area " + bounds + " contains " + Utils.format(workarea.getSize())
+									+ " nodes but is already at the minimum size so can't be split further");
+					continue;
+				}
+
+				// Decide whether to split vertically or horizontally and go ahead with the split
 				SubArea[] sub;
-				if (height > width) {
+				int width1 = (int) (width * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
+				int width2 = (int) (width * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
+				width = Math.max(width1, width2);
+				if (height > width && !minHeight) {
 					sub = splitVert(workarea);
 				}
 				else {
@@ -77,6 +94,7 @@ public class AreaSplitter {
 				it.set(sub[0]);
 				it.add(sub[1]);
 				workarea.clear();
+				notDone = true;
 			}
 		}
 		return new AreaList(areas);
@@ -180,11 +198,29 @@ public class AreaSplitter {
 		else if (second - mid < limitoff)
 			mid = second - limitoff;
 
-		// Round to a garmin map unit at the given zoom level.
-		int nmid = (mid + (1 << (SHIFT - 1)));
-		nmid &= ~((1<<SHIFT)-1);
+		// Round to a garmin map unit at the desired zoom level.
+		int nmid = Utils.round(mid, shift);
 
-		assert nmid >= first && nmid <= second;
+		// Check that the midpoint is on the appropriate alignment boundary. If not, adjust
+		int alignment = 1 << shift;
+		if ((nmid & alignment) != (first & alignment)) {
+			if (nmid < mid) {
+				nmid += alignment;
+  		} else {
+				nmid -= alignment;
+			}
+		}
+
+		// Check if we're going to end up on the edge of a tile. If so, move away. We always
+		// have room to move away because a split is only attempted in the first place if
+		// the tile to split is bigger than the minimum tile width.
+		if (nmid == first) {
+			nmid += alignment << 1;
+		} else if (nmid == second) {
+			nmid -= alignment << 1;
+		}
+
+		assert nmid > first && nmid < second;
 		return nmid;
 	}
 }

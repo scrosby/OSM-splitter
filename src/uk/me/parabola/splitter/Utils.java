@@ -59,6 +59,7 @@ public class Utils {
 
 	/**
 	 * Rounds an integer down to the nearest multiple of {@code 2^shift}.
+	 * Works with both positive and negative integers.
 	 * @param val the integer to round down.
 	 * @param shift the power of two to round down to.
 	 * @return the rounded integer.
@@ -69,11 +70,23 @@ public class Utils {
 
 	/**
 	 * Rounds an integer up to the nearest multiple of {@code 2^shift}.
+	 * Works with both positive and negative integers.
 	 * @param val the integer to round up.
 	 * @param shift the power of two to round up to.
 	 * @return the rounded integer.
 	 */
 	public static int roundUp(int val, int shift) {
 		return (val + (1 << shift) - 1) >>> shift << shift;
+	}
+
+	/**
+	 * Rounds an integer up or down to the nearest multiple of {@code 2^shift}.
+	 * Works with both positive and negative integers.
+	 * @param val the integer to round.
+	 * @param shift the power of two to round to.
+	 * @return the rounded integer.
+	 */
+	public static int round(int val, int shift) {
+		return (val + (1 << (shift - 1))) >>> shift << shift;
 	}
 }

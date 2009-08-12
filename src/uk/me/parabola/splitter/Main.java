@@ -64,6 +64,15 @@ public class Main {
 	// The max number of nodes that will appear in a single file.
 	private int maxNodes = 1600000;
 
+	// The maximum resolution of the map to be produced by mkgmap. This is a value in the range
+	// 0-24. Higher numbers mean higher detail. The resolution determines how the tiles must
+	// be aligned. Eg a resolution of 13 means the tiles need to have their edges aligned to
+	// multiples of 2 ^ (24 - 13) = 2048 map units, and their widths and heights must be a multiple
+	// of 2 * 2 ^ (24 - 13) = 4096 units. The tile widths and height multiples are double the tile
+	// alignment because the center point of the tile is stored, and that must be aligned the
+	// same as the tile edges are.
+	private int resolution = 13;
+
 	// Set if there is a previous area file given on the command line.
 	private AreaList areaList;
 	private boolean mixed;
@@ -92,6 +101,10 @@ public class Main {
 		readArgs(args);
 
 		if (areaList == null) {
+			int alignment = 1 << (24 - resolution);
+			System.out.println("Map is being split for resolution " + resolution + ':');
+			System.out.println(" - area boundaries are aligned to 0x" + Integer.toHexString(alignment) + " map units");
+			System.out.println(" - areas are multiples of 0x" + Integer.toHexString(alignment * 2) + " map units wide and high");
 			areaList = calculateAreas();
 		}
 
@@ -125,6 +138,11 @@ public class Main {
 		mapid = config.getProperty("mapid", config.getProperty("mapname", mapid));
 		overlapAmount = config.getProperty("overlap", overlapAmount);
 		maxNodes = config.getProperty("max-nodes", maxNodes);
+		resolution = config.getProperty("resolution", resolution);
+		if (resolution < 1 || resolution > 24) {
+			System.err.println("The --resolution parameter must be a value between 1 and 24. Resetting to 13.");
+			resolution = 13;
+		}
 		mixed = config.getProperty("mixed", false);
 		maxAreasPerPass = config.getProperty("max-areas", maxAreasPerPass);
 		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
@@ -174,9 +192,12 @@ public class Main {
 		System.out.println("Max node ID = " + xmlHandler.getMaxNodeId());
 		System.out.println("Time: " + new Date());
 
+		Area exactArea = xmlHandler.getExactArea();
+		SubArea totalArea = xmlHandler.getRoundedArea(resolution);
+		System.out.println("Exact map coverage is " + exactArea);
+		System.out.println("Rounded map coverage is " + totalArea.getBounds());
 		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
-		SubArea totalArea = xmlHandler.getTotalArea();
-		AreaSplitter splitter = new AreaSplitter();
+		AreaSplitter splitter = new AreaSplitter(resolution);
 		areaList = splitter.split(totalArea, maxNodes);
 
 		// Set the mapid's
