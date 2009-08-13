@@ -95,8 +95,8 @@ public class AreaList {
 		List<SubArea> list = new ArrayList<SubArea>();
 
 		Pattern pattern = Pattern.compile("([0-9]{8}):" +
-				" ([\\p{Digit}-]+),([\\p{Digit}-]+)" +
-				" to ([\\p{Digit}-]+),([\\p{Digit}-]+)");
+		" ([\\p{XDigit}x-]+),([\\p{XDigit}x-]+)" +
+		" to ([\\p{XDigit}x-]+),([\\p{XDigit}x-]+)");
 
 		try {
 			r = new FileReader(filename);
