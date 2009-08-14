@@ -83,6 +83,8 @@ class SplitParser extends AbstractXppParser {
 	public boolean startElement() {
 		String name = getParser().getName();
 		if (mode == 0) {
+			if ("delete".equals(getAttr("action")))
+				return false;
 			if (name.equals("node")) {
 				startNode();
 			} else if (name.equals("way")) {

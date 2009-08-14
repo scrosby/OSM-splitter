@@ -54,6 +54,9 @@ class DivisionParser extends AbstractXppParser {
 		if (mode == 0) {
 			String name = getParser().getName();
 			if (name.equals("node")) {
+				if ("delete".equals(getAttr("action"))) {
+					return false;
+				}
 				mode = MODE_NODE;
 
 				nodeCount++;
