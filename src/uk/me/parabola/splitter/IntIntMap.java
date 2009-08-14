@@ -19,18 +19,12 @@ package uk.me.parabola.splitter;
 import java.util.Iterator;
 
 /**
- * Store the tags that belong to an Element.
+ * A map from int to int, designed to minimise memory use while still maintaining
+ * good performance.
  *
- * Used to use a HashMap for this.  We have a requirement to be able
- * to add to the map during iteration over it so this class was written
- * instead.
- *
- * It should also uses less memory (hash maps are the main use of memory in the
- * application), as it doesn't allocate a Map.Entry object for every tag.
- * Performance of the whole application is unchanged compared with when
- * a regular HashMap was used.
- *
- * It doesn't fully behave the same way that a map would.
+ * It doesn't behave exactly the same way as a map would. Note also that zero is
+ * reserved and should not be used as a key. Doing so will result in undefined
+ * behaviour.
  *
  * @author Steve Ratcliffe
  */
@@ -55,6 +49,8 @@ public class IntIntMap {
 	}
 
 	public IntIntMap(int initCap, float load) {
+		if (!Utils.isPowerOfTwo(initCap))
+			throw new IllegalArgumentException("The initial capacity " + initCap + " must be a power of two");
 		keys = new int[initCap];
 		values = new int[initCap];
 		capacity = initCap;
@@ -70,8 +66,8 @@ public class IntIntMap {
 	}
 
 	public int get(int key) {
-		Integer ind = keyPos(key);
-		if (ind == null)
+		int ind = keyPos(key);
+		if (keys[ind] == 0)
 			return 0;
 
 		return values[ind];
@@ -118,7 +114,7 @@ public class IntIntMap {
 
 	private void ensureSpace() {
 		while (size + 1 >= targetSize) {
-			int ncap = capacity*2;
+			int ncap = capacity << 1;
 			targetSize = (int) (ncap * loadFactor);
 
 			int[] okey = keys;

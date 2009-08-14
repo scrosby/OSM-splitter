@@ -89,4 +89,12 @@ public class Utils {
 	public static int round(int val, int shift) {
 		return (val + (1 << (shift - 1))) >>> shift << shift;
 	}
+
+	/**
+	 * @param n the integer to test
+	 * @return {@code true} if the integer is a power of two, {@code false} otherwise.
+	 */
+	public static boolean isPowerOfTwo(int n) {
+		return ((n & (n - 1)) == 0) && n > 0;
+	}
 }

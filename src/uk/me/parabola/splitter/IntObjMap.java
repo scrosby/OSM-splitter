@@ -16,8 +16,16 @@
  */
 package uk.me.parabola.splitter;
 
+/**
+ * A map from int to Object, designed to minimise memory use while still maintaining
+ * good performance.
+ * <p/>
+ * It doesn't behave exactly the same way as a map would. Note also that zero is
+ * reserved and should not be used as a key. Doing so will result in undefined
+ * behaviour.
+ */
 public class IntObjMap<V> {
-	private static final int INIT_SIZE = 1 << 16;
+	private static final int INIT_SIZE = 1 << 8;
 
 	private int size;
 	private int[] keys;
@@ -35,6 +43,8 @@ public class IntObjMap<V> {
 	}
 
 	public IntObjMap(int initCap, float load) {
+		if (!Utils.isPowerOfTwo(initCap))
+			throw new IllegalArgumentException("The initial capacity " + initCap + " must be a power of two");
 		keys = new int[initCap];
 		values = (V[]) new Object[initCap];
 		capacity = initCap;
@@ -50,8 +60,8 @@ public class IntObjMap<V> {
 	}
 
 	public V get(int key) {
-		Integer ind = keyPos(key);
-		if (ind == null)
+		int ind = keyPos(key);
+		if (keys[ind] == 0)
 			return null;
 
 		return values[ind];
@@ -73,7 +83,7 @@ public class IntObjMap<V> {
 
 	private void ensureSpace() {
 		while (size + 1 >= targetSize) {
-			int ncap = capacity * 3 / 2;
+			int ncap = capacity << 1;
 			targetSize = (int) (ncap * loadFactor);
 
 			int[] okey = keys;
@@ -98,9 +108,9 @@ public class IntObjMap<V> {
 		int h1 = keys[k];
 		if (h1 != 0 && h1 != key) {
 			for (int k2 = k+OFF; ; k2+= OFF) {
-				if (k2 >= capacity) {
+				if (k2 >= capacity)
 					k2 -= capacity;
-				}
+
 				int fk = keys[k2];
 				if (fk == 0 || fk == key) {
 					return k2;
