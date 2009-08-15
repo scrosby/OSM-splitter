@@ -57,12 +57,22 @@ class DivisionParser extends AbstractXppParser {
 				if ("delete".equals(getAttr("action"))) {
 					return false;
 				}
-				mode = MODE_NODE;
+				String idStr = getAttr("id");
+				String latStr = getAttr("lat");
+				String lonStr = getAttr("lon");
 
+				if (idStr == null || latStr == null || lonStr == null) {
+					System.out.println("Bad .osm file! Node with missing attributes found: id="
+									+ idStr + ", lat=" + latStr + ", lon=" + lonStr + ". Skipping this node");
+					return false;
+				}
+
+				int id = Integer.parseInt(idStr);
+				double lat = Double.parseDouble(latStr);
+				double lon = Double.parseDouble(lonStr);
+
+				mode = MODE_NODE;
 				nodeCount++;
-				int id = Integer.parseInt(getAttr("id"));
-				double lat = Double.parseDouble(getAttr("lat"));
-				double lon = Double.parseDouble(getAttr("lon"));
 
 				if (id < minNodeId) {
 					minNodeId = id;

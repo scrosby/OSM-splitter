@@ -103,11 +103,14 @@ class SplitParser extends AbstractXppParser {
 	}
 
 	private void startNode() {
-		mode = MODE_NODE;
-
 		String id = getAttr("id");
 		String slat = getAttr("lat");
 		String slon = getAttr("lon");
+
+		if (id == null || slat == null || slon == null) // This should never happen - bad/corrupt .osm file?
+			return;
+
+			mode = MODE_NODE;
 
 		double lat = Double.parseDouble(slat);
 		double lon = Double.parseDouble(slon);
