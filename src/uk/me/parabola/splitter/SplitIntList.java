@@ -16,7 +16,7 @@ public class SplitIntList {
 	private int size;
 
 	public SplitIntList() {
-		segmentSize = DEFAULT_SEGMENT_SIZE;
+		this(DEFAULT_SEGMENT_SIZE);
 	}
 
 	public SplitIntList(int segmentSize) {

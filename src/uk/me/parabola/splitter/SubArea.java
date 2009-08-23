@@ -16,7 +16,6 @@
  */
 package uk.me.parabola.splitter;
 
-import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -40,7 +39,7 @@ public class SubArea {
 	private int mapid;
 
 	private Area extendedBounds;
-	private BufferedWriter writer;
+	private Writer writer;
 
 	private SplitIntList coords;
 	private int size;
@@ -94,119 +93,164 @@ public class SubArea {
 		try {
 			FileOutputStream fos = new FileOutputStream(filename);
 			OutputStream zos = new GZIPOutputStream(fos);
-			Writer w = new OutputStreamWriter(zos, "utf-8");
-			writer = new BufferedWriter(w);
+			writer = new OutputStreamWriter(zos, "utf-8");
 			writeHeader();
 		} catch (IOException e) {
-			System.out.println("Could not open or write file header");
+			System.out.println("Could not open or write file header. Reason: " + e.getMessage());
+			throw new RuntimeException(e);
 		}
 	}
 
 	private void writeHeader() throws IOException {
-		writer.append("<?xml version='1.0' encoding='UTF-8'?>\n");
-		writer.append("<osm version='0.5' generator='splitter'>\n");
+		writeString("<?xml version='1.0' encoding='UTF-8'?>\n");
+		writeString("<osm version='0.5' generator='splitter'>\n");
 
-		writer.append("<bounds minlat='");
-		writer.append(String.valueOf(Utils.toDegrees(bounds.getMinLat())));
-		writer.append("' minlon='");
-		writer.append(String.valueOf(Utils.toDegrees(bounds.getMinLong())));
-		writer.append("' maxlat='");
-		writer.append(String.valueOf(Utils.toDegrees(bounds.getMaxLat())));
-		writer.append("' maxlon='");
-		writer.append(String.valueOf(Utils.toDegrees(bounds.getMaxLong())));
-		writer.append("'/>\n");
+		writeString("<bounds minlat='");
+		writeDouble(Utils.toDegrees(bounds.getMinLat()));
+		writeString("' minlon='");
+		writeDouble(Utils.toDegrees(bounds.getMinLong()));
+		writeString("' maxlat='");
+		writeDouble(Utils.toDegrees(bounds.getMaxLat()));
+		writeString("' maxlon='");
+		writeDouble(Utils.toDegrees(bounds.getMaxLong()));
+		writeString("'/>\n");
 	}
 
 	public void finishWrite() {
 		try {
-			writer.append("</osm>\n");
+			writeString("</osm>\n");
+			flush();
 			writer.close();
 		} catch (IOException e) {
 			System.out.println("Could not write end of file: " + e);
 		}
 	}
 
-	public boolean write(StringNode node) throws IOException {
-		if (extendedBounds.contains(node.getLat(), node.getLon())) {
-			writer.append("<node id='");
-			writer.append(node.getStringId());
-			writer.append("' lat='");
-			writer.append(node.getStringLat());
-			writer.append("' lon='");
-			writer.append(node.getStringLon());
+	public boolean write(Node node) throws IOException {
+		if (extendedBounds.contains(node.getMapLat(), node.getMapLon())) {
+			writeString("<node id='");
+			writeInt(node.getId());
+			writeString("' lat='");
+			writeDouble(node.getLat());
+			writeString("' lon='");
+			writeDouble(node.getLon());
 			if (node.hasTags()) {
-				writer.append("'>\n");
+				writeString("'>\n");
 				writeTags(node);
-				writer.append("</node>\n");
+				writeString("</node>\n");
 			} else {
-				writer.append("'/>\n");
+				writeString("'/>\n");
 			}
 			return true;
 		}
 		return false;
 	}
 
-	public void write(StringWay way) throws IOException {
-		writer.append("<way id='");
-		writer.append(way.getStringId());
-		writer.append("'>\n");
-		List<String> refs = way.getRefs();
-		for (String ref : refs) {
-			writer.append("<nd ref='");
-			writer.append(ref);
-			writer.append("'/>\n");
+	public void write(Way way) throws IOException {
+		writeString("<way id='");
+		writeInt(way.getId());
+		writeString("'>\n");
+		IntList refs = way.getRefs();
+		for (int i = 0; i < refs.size(); i++) {
+			writeString("<nd ref='");
+			writeInt(refs.get(i));
+			writeString("'/>\n");
 		}
-
 		if (way.hasTags())
 			writeTags(way);
-		writer.append("</way>\n");
+		writeString("</way>\n");
 	}
 
-	public void write(StringRelation rel) throws IOException {
-		writer.append("<relation id='");
-		writer.append(rel.getStringId());
-		writer.append("'>\n");
-		List<StringRelation.Member> memlist = rel.getMembers();
-		for (StringRelation.Member m : memlist) {
-			writer.append("<member type='");
-			writer.append(m.getType());
-			writer.append("' ref='");
-			writer.append(m.getRef());
-			writer.append("' role='");
-			writer.append(m.getRole());
-			writer.append("'/>\n");
+	public void write(Relation rel) throws IOException {
+		writeString("<relation id='");
+		writeInt(rel.getId());
+		writeString("'>\n");
+		List<Relation.Member> memlist = rel.getMembers();
+		for (Relation.Member m : memlist) {
+			writeString("<member type='");
+			writeString(m.getType());
+			writeString("' ref='");
+			writeInt(m.getRef());
+			writeString("' role='");
+			writeString(m.getRole());
+			writeString("'/>\n");
 		}
 		if (rel.hasTags())
 			writeTags(rel);
-		writer.append("</relation>\n");
+		writeString("</relation>\n");
 	}
 
 	private void writeTags(Element element) throws IOException {
 		Iterator<Map.Entry<String,String>> it = element.tagsIterator();
 		while (it.hasNext()) {
 			Map.Entry<String,String> entry = it.next();
-			writer.append("<tag k='");
+			writeString("<tag k='");
 			writeAttribute(entry.getKey());
-			writer.append("' v='");
+			writeString("' v='");
 			writeAttribute(entry.getValue());
-			writer.append("'/>\n");
+			writeString("'/>\n");
 		}
 	}
 
 	private void writeAttribute(String value) throws IOException {
-		for (char c : value.toCharArray()) {
+		for (int i = 0; i < value.length(); i++) {
+		  char c = value.charAt(i);
 			if (c == '\'')
-				writer.append("&apos;");
+				writeString("&apos;");
 			else if (c == '&') {
-				writer.append("&amp;");
+				writeString("&amp;");
 			} else if (c == '<') {
-				writer.append("&lt;");
+				writeString("&lt;");
 			} else
-				writer.append(c);
+				writeChar(c);
 		}
 	}
 
 	void setMapid(int mapid) {
 		this.mapid = mapid;
+	}
+
+	private char[] charBuf = new char[4096];
+	private int index;
+
+	private void checkFlush(int i) throws IOException {
+		if (charBuf.length - index < i) {
+			flush();
+		}
+	}
+
+	private void flush() throws IOException {
+		writer.write(charBuf, 0, index);
+		index = 0;
+	}
+
+	private void writeString(String value) throws IOException {
+		int start = 0;
+		int end = value.length();
+		int len;
+		while ((len = charBuf.length - index) < end - start)
+		{
+			value.getChars(start, start + len, charBuf, index);
+			start += len;
+			index = charBuf.length;
+			flush();
+		}
+		value.getChars(start, end, charBuf, index);
+		index += end - start;
+	}
+
+	private void writeDouble(double value) throws IOException {
+		checkFlush(22);
+		writeString(Double.toString(value));
+	}
+
+	private void writeInt(int value) throws IOException {
+		checkFlush(11);
+		index += Convert.intToString(value, charBuf, index);
+	}
+
+	private void writeChar(char value) throws IOException {
+		checkFlush(1);
+		charBuf[index++] = value;
 	}
 }

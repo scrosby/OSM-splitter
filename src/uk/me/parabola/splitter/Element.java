@@ -24,23 +24,25 @@ import java.util.Map;
  * @author Steve Ratcliffe
  */
 public class Element {
-	private Map<String, String> tags;
-	private final String stringId;
+	private Map<String, String> tags = new HashMap<String, String>(8);
+	private int id;
 
-	public Element(String stringId) {
-		this.stringId = stringId;
+	protected void setId(int id) {
+		this.id = id;
 	}
 
 	public int getId() {
-		return Integer.parseInt(stringId);
+		return id;
 	}
-	
+
+	public void reset() {
+		this.id = 0;
+		tags.clear();
+	}
+
 	public void addTag(String key, String value) {
 		if (key.equals("created_by"))
 			return;
-		
-		if (tags == null)
-			tags = new HashMap<String, String>(8);
 		tags.put(key, value);
 	}
 
@@ -48,11 +50,7 @@ public class Element {
 		return tags != null && !tags.isEmpty();
 	}
 
-	public Iterator<Map.Entry<String,String>> tagsIterator() {
+	public Iterator<Map.Entry<String, String>> tagsIterator() {
 		return tags.entrySet().iterator();
-	}
-
-	public String getStringId() {
-		return stringId;
 	}
 }

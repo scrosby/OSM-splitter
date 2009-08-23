@@ -22,19 +22,21 @@ import java.util.List;
 /**
  * @author Steve Ratcliffe
  */
-public class StringRelation extends Element {
+public class Relation extends Element {
 	private final List<Member> members = new ArrayList<Member>();
 
-	public StringRelation(String stringId) {
-		super(stringId);
+	public void set(int id) {
+		setId(id);
 	}
 
-	public void addMember(String type, String ref, String role) {
-		Member mem = new Member();
-		mem.type = type;
-		mem.ref = ref;
-		mem.role = role;
+	@Override
+	public void reset() {
+		super.reset();
+		members.clear();
+	}
 
+	public void addMember(String type, int ref, String role) {
+		Member mem = new Member(type, ref, role);
 		members.add(mem);
 	}
 
@@ -44,14 +46,20 @@ public class StringRelation extends Element {
 
 	static class Member {
 		private String type;
-		private String ref;
+		private int ref;
 		private String role;
+
+		Member(String type, int ref, String role) {
+			this.type = type;
+			this.ref = ref;
+			this.role = role;
+		}
 
 		public String getType() {
 			return type;
 		}
 
-		public String getRef() {
+		public int getRef() {
 			return ref;
 		}
 

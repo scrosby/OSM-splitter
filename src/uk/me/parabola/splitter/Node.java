@@ -17,38 +17,44 @@
 package uk.me.parabola.splitter;
 
 /**
- * A node where the originally read strings are also saved so that we can
- * easily print them out again.
+ * A single map node.
  *
  * @author Steve Ratcliffe
  */
-public class StringNode extends Element {
-	private final int lat;
-	private final int lon;
-	private final String stringLat;
-	private final String stringLon;
+public class Node extends Element {
+	private double lat, lon;
+	private int mapLat, mapLon;
 
-	public StringNode(int lat, int lon, String stringId, String stringLat, String stringLon) {
-		super(stringId);
+	public void set(int id, double lat, double lon) {
+		setId(id);
 		this.lat = lat;
 		this.lon = lon;
-		this.stringLat = stringLat;
-		this.stringLon = stringLon;
+		this.mapLat = Utils.toMapUnit(lat);
+		this.mapLon = Utils.toMapUnit(lon);
 	}
 
-	public int getLat() {
+	@Override
+	public void reset() {
+		super.reset();
+		lat = 0.0d;
+		lon = 0.0d;
+		mapLat = 0;
+		mapLon = 0;
+	}
+
+	public double getLat() {
 		return lat;
 	}
 
-	public int getLon() {
+	public double getLon() {
 		return lon;
 	}
 
-	public String getStringLat() {
-		return stringLat;
+	public int getMapLat() {
+		return mapLat;
 	}
 
-	public String getStringLon() {
-		return stringLon;
+	public int getMapLon() {
+		return mapLon;
 	}
 }

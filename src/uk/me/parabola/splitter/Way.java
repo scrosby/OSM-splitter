@@ -16,24 +16,27 @@
  */
 package uk.me.parabola.splitter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author Steve Ratcliffe
  */
-public class StringWay extends Element {
-	private final List<String> refs = new ArrayList<String>();
+public class Way extends Element {
+	private final IntList refs = new IntList(10);
 
-	public StringWay(String stringId) {
-		super(stringId);
+	public void set(int id) {
+		setId(id);
 	}
 
-	public void addRef(String ref) {
+	@Override
+	public void reset() {
+		super.reset();
+		refs.clear();
+	}
+
+	public void addRef(int ref) {
 		refs.add(ref);
 	}
 
-	public List<String> getRefs() {
+	public IntList getRefs() {
 		return refs;
 	}
 }

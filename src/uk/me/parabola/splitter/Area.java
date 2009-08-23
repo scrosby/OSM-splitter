@@ -85,6 +85,14 @@ public class Area {
 				;
 	}
 
+	public String toHexString() {
+		return "(0x"
+				+ Integer.toHexString(minLat) + ",0x"
+				+ Integer.toHexString(minLong) + ") to (0x"
+				+ Integer.toHexString(maxLat) + ",0x"
+				+ Integer.toHexString(maxLong) + ')';
+	}
+
 	public boolean contains(int lat, int lon) {
 		return lat >= minLat
 				&& lat <= maxLat

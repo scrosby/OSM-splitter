@@ -16,6 +16,7 @@
  */
 package uk.me.parabola.splitter;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -76,6 +77,7 @@ public class Main {
 	// Set if there is a previous area file given on the command line.
 	private AreaList areaList;
 	private boolean mixed;
+	private String diskCachePath;
 
 	public static void main(String[] args) {
 		Main m = new Main();
@@ -87,8 +89,10 @@ public class Main {
 			m.split(args);
 		} catch (IOException e) {
 			System.err.println("Error opening or reading file " + e);
+			e.printStackTrace();
 		} catch (XmlPullParserException e) {
 			System.err.println("Error parsing xml from file " + e);
+			e.printStackTrace();
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		}
@@ -144,6 +148,12 @@ public class Main {
 			resolution = 13;
 		}
 		mixed = config.getProperty("mixed", false);
+		diskCachePath = config.getProperty("cache");
+		if (diskCachePath != null && !(new File(diskCachePath).isDirectory())) {
+			System.err.println("The --cache parameter must specify an existing directory. Disk cache disabled.");
+			diskCachePath = null;
+		}
+
 		maxAreasPerPass = config.getProperty("max-areas", maxAreasPerPass);
 		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
 			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
@@ -168,32 +178,41 @@ public class Main {
 	 * then subdividing down until each area has at most max-nodes nodes in it.
 	 */
 	private AreaList calculateAreas() throws IOException, XmlPullParserException {
-		if (filenames.isEmpty())
-			throw new FileNotFoundException("No filename given");
 
-		DivisionParser xmlHandler = new DivisionParser();
-		xmlHandler.setMixed(mixed);
-
-		for (String filename : filenames) {
-			System.out.println("Processing " + filename);
-			Reader reader = openFile(filename);
-			xmlHandler.setReader(reader);
-			try {
-				// First pass, read nodes and split into areas.
-				xmlHandler.parse();
-			} finally {
-				// Release resources
-				reader.close();
+		NodeCollector nodes;
+		boolean loadFromCache = false;
+		if (diskCachePath == null) {
+			System.out.println("The input osm file(s) will be re-parsed during the split (slower) because no --cache parameter was specified");
+			nodes = new NodeCollector();
+		} else {
+			if (new File(diskCachePath, "nodes.bin").exists()) {
+				System.out.println("Existing disk cache found. Data will be loaded from the cache");
+				loadFromCache = true;
+				nodes = new NodeCollector();
+			} else {
+				System.out.println("Nodes/ways/relation data will be written out to a disk cache to speed up the splitting stage");
+				nodes = new DiskAndNodeCollector(diskCachePath);
 			}
 		}
-		System.out.println("A total of " + xmlHandler.getNodeCount() +
-						" nodes were processed in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
-		System.out.println("Min node ID = " + xmlHandler.getMinNodeId());
-		System.out.println("Max node ID = " + xmlHandler.getMaxNodeId());
+		if (!loadFromCache && filenames.isEmpty())
+			throw new FileNotFoundException("No filename given and no disk cache was found to load data from");
+
+		MapReader mapReader = processMap(nodes, loadFromCache);
+		System.out.print("A total of " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
+						Utils.format(mapReader.getWayCount()) + " ways and " +
+						Utils.format(mapReader.getRelationCount()) + " relations were processed ");
+		if (loadFromCache) {
+			System.out.println("from the disk cache");
+		} else {
+			System.out.println("in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
+		}
+		System.out.println("Min node ID = " + mapReader.getMinNodeId());
+		System.out.println("Max node ID = " + mapReader.getMaxNodeId());
+
 		System.out.println("Time: " + new Date());
 
-		Area exactArea = xmlHandler.getExactArea();
-		SubArea totalArea = xmlHandler.getRoundedArea(resolution);
+		Area exactArea = nodes.getExactArea();
+		SubArea totalArea = nodes.getRoundedArea(resolution);
 		System.out.println("Exact map coverage is " + exactArea);
 		System.out.println("Rounded map coverage is " + totalArea.getBounds());
 		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
@@ -240,28 +259,43 @@ public class Main {
 			for (SubArea a : currentAreas)
 				a.initForWrite(overlapAmount);
 
+			System.out.println("Starting pass " + (i + 1) + ", processing " + currentAreas.length +
+							" areas (" + currentAreas[0].getMapid() + " to " +
+							currentAreas[currentAreas.length - 1].getMapid() + ')');
+
+			Splitter splitter = new Splitter(currentAreas);
+			MapReader mapReader = processMap(splitter, diskCachePath != null);
+			System.out.println("Wrote " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
+							Utils.format(mapReader.getWayCount()) + " ways, " +
+							Utils.format(mapReader.getRelationCount()) + " relations");
+		}
+	}
+
+	private MapReader processMap(MapProcessor processor, boolean useCache) throws XmlPullParserException, IOException {
+		if (useCache) {
+			BinaryMapLoader loader = new BinaryMapLoader(diskCachePath, processor);
+			loader.load();
+			return loader;
+		} else {
+			OSMParser parser = new OSMParser(processor);
+			parser.setMixed(mixed);
+			processOsmFiles(parser);
+			return parser;
+		}
+	}
+
+	private void processOsmFiles(OSMParser parser) throws IOException, XmlPullParserException {
+		for (String filename : filenames) {
+			System.out.println("Processing " + filename);
+			Reader reader = openFile(filename);
+			parser.setReader(reader);
 			try {
-				System.out.println("Starting pass " + (i + 1) + ", processing " + currentAreas.length +
-													 " areas (" + currentAreas[0].getMapid() + " to " +
-								           currentAreas[currentAreas.length - 1].getMapid() + ')');
-				SplitParser xmlHandler = new SplitParser(currentAreas);
-				for (String filename : filenames) {
-					Reader reader = openFile(filename);
-					xmlHandler.setReader(reader);
-					try {
-						xmlHandler.parse();
-					} finally {
-						reader.close();
-					}
-				}
-				System.out.println("Wrote " + Utils.format(xmlHandler.getNodeCount()) + " nodes, " +
-																			Utils.format(xmlHandler.getWayCount()) + " ways, " +
-																			Utils.format(xmlHandler.getRelationCount()) + " relations");
+				parser.parse();
 			} finally {
-				for (SubArea a : currentAreas)
-					a.finishWrite();
+				reader.close();
 			}
 		}
+		parser.endMap();
 	}
 
 	/**
