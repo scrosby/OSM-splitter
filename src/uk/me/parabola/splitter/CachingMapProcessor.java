@@ -3,32 +3,39 @@ package uk.me.parabola.splitter;
 import java.io.File;
 import java.io.IOException;
 
+import uk.me.parabola.splitter.disk.CacheVerifier;
 import uk.me.parabola.splitter.disk.MemberType;
 import uk.me.parabola.splitter.disk.NodeStoreWriter;
 import uk.me.parabola.splitter.disk.RelationStoreWriter;
 import uk.me.parabola.splitter.disk.WayStoreWriter;
 
 /**
- * Collects node information and also writes the map out in a binary format to disk.
+ * Writes the map out in a binary format to a disk cache and then
+ * delegates calls on to another {@link MapProcessor}.
  *
  * @author Chris Miller
  */
-public class DiskAndNodeCollector extends NodeCollector {
+public class CachingMapProcessor implements MapProcessor {
 
 	private NodeStoreWriter nodeWriter;
 	private WayStoreWriter wayWriter;
 	private RelationStoreWriter relationWriter;
 
+	private MapProcessor delegate;
+	CacheVerifier verifier;
 	private int currentNode;
 	private int currentWay;
 	private int currentRel;
 	private boolean startedWayTags;
 	private boolean startedRelTags;
 
-	public DiskAndNodeCollector(String path) throws IOException {
-		nodeWriter = new NodeStoreWriter(path + File.separatorChar + "nodes.bin");
-		wayWriter = new WayStoreWriter(path + File.separatorChar + "ways.bin");
-		relationWriter = new RelationStoreWriter(path + File.separatorChar + "relations.bin");
+	public CachingMapProcessor(String outputDir, CacheVerifier verifier, MapProcessor delegate) throws IOException {
+		this.delegate = delegate;
+		this.verifier = verifier;
+		verifier.clearEntries();
+		nodeWriter = new NodeStoreWriter(outputDir + File.separatorChar + "nodes.bin");
+		wayWriter = new WayStoreWriter(outputDir + File.separatorChar + "ways.bin");
+		relationWriter = new RelationStoreWriter(outputDir + File.separatorChar + "relations.bin");
 	}
 
 	@Override
@@ -39,13 +46,13 @@ public class DiskAndNodeCollector extends NodeCollector {
 	@Override
 	public void startNode(int id, double lat, double lon) {
 		currentNode = id;
-		super.startNode(id, lat, lon);
 		try {
 			nodeWriter.write(id, lat, lon);
 		} catch (IOException e) {
 			System.out.println("Unable to write node " + id + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		delegate.startNode(id, lat, lon);
 	}
 
 	@Override
@@ -58,6 +65,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write way " + id + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.startWay(id);
 	}
 
 	@Override
@@ -70,6 +79,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write relation " + id + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.startRelation(id);
 	}
 
 	@Override
@@ -80,6 +91,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write tag for node " + currentNode + ". key=" + key + ", value=" + value + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.nodeTag(key, value);
 	}
 
 	@Override
@@ -94,6 +107,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write tag for way " + currentWay + ". key=" + key + ", value=" + value + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.wayTag(key, value);
 	}
 
 	@Override
@@ -108,6 +123,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write tag for relation " + currentRel + ". key=" + key + ", value=" + value + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.relationTag(key, value);
 	}
 
 	@Override
@@ -118,6 +135,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write node reference for way " + currentWay + ", nodeId=" + nodeId + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.wayNode(nodeId);
 	}
 
 	@Override
@@ -128,6 +147,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write node member for relation " + currentRel + ", nodeId=" + nodeId + ", role='" + role + "'. Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.relationNode(nodeId, role);
 	}
 
 	@Override
@@ -138,6 +159,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to write way member for relation " + currentRel + ", wayId=" + wayId + ", role='" + role + "'. Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.relationWay(wayId, role);
 	}
 
 	@Override
@@ -149,6 +172,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to finish writing node " + currentNode + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.endNode();
 	}
 
 	@Override
@@ -162,6 +187,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to finish writing way " + currentWay + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.endWay();
 	}
 
 	@Override
@@ -175,6 +202,8 @@ public class DiskAndNodeCollector extends NodeCollector {
 			System.out.println("Unable to finish writing relation " + currentRel + ". Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.endRelation();
 	}
 
 	@Override
@@ -183,9 +212,12 @@ public class DiskAndNodeCollector extends NodeCollector {
 			nodeWriter.close();
 			wayWriter.close();
 			relationWriter.close();
+			verifier.saveEntries();
 		} catch (IOException e) {
 			System.out.println("Unable to close node/way/relation writer(s). Reason: " + e.getMessage());
 			throw new RuntimeException(e);
 		}
+		if (!delegate.isStartNodeOnly())
+			delegate.endMap();
 	}
 }
