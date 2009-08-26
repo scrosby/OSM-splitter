@@ -87,6 +87,56 @@ public class AreaList {
 	}
 
 	/**
+	 * Write out a KML file containing the areas that we calculated. This KML file
+	 * can be opened in Google Earth etc to see the areas that were split.
+	 *
+	 * @param filename The KML filename to write to.
+	 */
+	public void writeKml(String filename) throws IOException {
+
+		Writer w = null;
+		try {
+			w = new FileWriter(filename);
+			PrintWriter pw = new PrintWriter(w);
+
+			pw.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+								 "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n" +
+								 "<Document>");
+
+			for (SubArea a : areas) {
+				Area b = a.getBounds();
+				double south = Utils.toDegrees(b.getMinLat());
+				double west = Utils.toDegrees(b.getMinLong());
+				double north = Utils.toDegrees(b.getMaxLat());
+				double east = Utils.toDegrees(b.getMaxLong());
+
+				pw.format("  <Placemark>\n" +
+									"    <name>Map %1$d</name>\n" +
+									"    <Polygon>\n" +
+									"      <outerBoundaryIs>\n" +
+									"        <LinearRing>\n" +
+									"          <coordinates>\n" +
+									"            %3$f,%2$f\n" +
+									"            %3$f,%4$f\n" +
+									"            %5$f,%4$f\n" +
+									"            %5$f,%2$f\n" +
+									"            %3$f,%2$f\n" +
+									"          </coordinates>\n" +
+									"        </LinearRing>\n" +
+									"      </outerBoundaryIs>\n" +
+									"    </Polygon>\n" +
+									"  </Placemark>\n", a.getMapid(), south, west, north, east);
+			}
+			pw.print("</Document>\n</kml>");
+		} catch (IOException e) {
+			System.err.println("Could not write KML file " + filename);
+		} finally {
+			if (w != null)
+				w.close();
+		}
+	}
+
+	/**
 	 * Read in an area definition file that we previously wrote.
 	 * Obviously other tools could create the file too.
 	 */

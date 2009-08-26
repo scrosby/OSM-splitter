@@ -84,7 +84,10 @@ public class Main {
 	private String diskCachePath;
 	// Whether or not a new cache needs to be generated.
 	private boolean generateCache;
+	// Used to verify whether an existing cache is valid or not.
 	private CacheVerifier verifier;
+
+	private String kmlOutputFile;
 
 	public static void main(String[] args) {
 		Main m = new Main();
@@ -137,6 +140,11 @@ public class Main {
 			areaList = calculateAreas();
 		}
 
+		if (kmlOutputFile != null) {
+			System.out.println("Writing KML file to " + kmlOutputFile);
+			areaList.writeKml(kmlOutputFile);
+		}
+
 		writeAreas(areaList);
 		writeArgsFile();
 	}
@@ -185,6 +193,8 @@ public class Main {
 			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
 			maxAreasPerPass = 255;
 		}
+
+		kmlOutputFile = config.getProperty("write-kml");
 
 		if (config.containsKey("split-file")) {
 			String splitFile = config.getProperty("split-file");
