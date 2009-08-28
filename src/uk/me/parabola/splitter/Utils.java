@@ -15,7 +15,16 @@
  */
 package uk.me.parabola.splitter;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.Charset;
 import java.text.NumberFormat;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.tools.bzip2.CBZip2InputStream;
 
 /**
  * Some miscellaneous functions that are used within the .img code.
@@ -96,5 +105,31 @@ public class Utils {
 	 */
 	public static boolean isPowerOfTwo(int n) {
 		return ((n & (n - 1)) == 0) && n > 0;
+	}
+
+	/**
+	 * Open a file and apply filters necessary to reading it such as decompression.
+	 *
+	 * @param name The file to open.
+	 * @return A stream that will read the file, positioned at the beginning.
+	 * @throws IOException If the file cannot be opened for any reason.
+	 */
+	static Reader openFile(String name) throws IOException {
+		InputStream is = new FileInputStream(name);
+		if (name.endsWith(".gz")) {
+			try {
+				is = new GZIPInputStream(is);
+			} catch (IOException e) {
+				throw new IOException( "Could not read " + name + " as a gz compressed file", e);
+			}
+		}
+		if (name.endsWith(".bz2")) {
+			try {
+				is.read(); is.read(); is = new CBZip2InputStream(is);
+			} catch (IOException e) {
+				throw new IOException( "Could not read " + name + " as a bz2 compressed file", e);
+			}
+		}
+		return new InputStreamReader(is, Charset.forName("UTF-8"));
 	}
 }

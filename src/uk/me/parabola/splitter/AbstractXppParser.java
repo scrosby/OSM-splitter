@@ -30,6 +30,10 @@ public abstract class AbstractXppParser {
 		return Integer.parseInt(parser.getAttributeValue(null, name));
 	}
 
+	protected String getTextContent() {
+		return parser.getText();
+	}
+
 	protected void parse() throws IOException, XmlPullParserException {
 		boolean done = false;
 		int eventType = parser.getEventType();
@@ -38,12 +42,27 @@ public abstract class AbstractXppParser {
 				done = startElement(parser.getName());
 			} else if (eventType == XmlPullParser.END_TAG) {
 				endElement(parser.getName());
+			} else if (eventType == XmlPullParser.TEXT) {
+				text();
 			}
 		}
 		while (!done && (eventType = parser.next()) != XmlPullParser.END_DOCUMENT);
 	}
 
+	protected XmlPullParserException createException(String message) {
+		return new XmlPullParserException(message, parser, null);
+	}
+	/**
+	 * Called when the start of an element is encountered.
+	 * @param name the name of the element.
+	 * @return {@code true} to abort the parsing because there's
+	 * no further processing required, {@code false} otherwise.
+	 * @throws XmlPullParserException
+	 */
 	abstract protected boolean startElement(String name) throws XmlPullParserException;
 
 	abstract protected void endElement(String name) throws XmlPullParserException;
+
+	protected void text() throws XmlPullParserException {
+	}
 }

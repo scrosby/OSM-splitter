@@ -24,21 +24,23 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.xmlpull.v1.XmlPullParserException;
+
 /**
  * A list of areas.  It can be read and written to a file.
  */
 public class AreaList {
-	private SubArea[] areas;
-	private static final SubArea[] SUB_AREA = new SubArea[0];
+	private List<SubArea> areas;
 
 	public AreaList(List<SubArea> areas) {
-		this.areas = areas.toArray(new SubArea[areas.size()]);
+		this.areas = areas;
 	}
 
 	/**
@@ -68,7 +70,7 @@ public class AreaList {
 
 			for (SubArea a : areas) {
 				Area b = a.getBounds();
-				pw.format(Locale.ROOT, "%d: %d,%d to %d,%d\n",
+				pw.format(Locale.ROOT, "%08d: %d,%d to %d,%d\n",
 						a.getMapid(),
 						b.getMinLat(), b.getMinLong(),
 						b.getMaxLat(), b.getMaxLong());
@@ -137,13 +139,22 @@ public class AreaList {
 		}
 	}
 
+	public void read(String filename) throws IOException {
+		String lower = filename.toLowerCase();
+		if (lower.endsWith(".kml") || lower.endsWith(".kml.gz") || lower.endsWith(".kml.bz2")) {
+			readKml(filename);
+		} else {
+			readList(filename);
+		}
+	}
+
 	/**
 	 * Read in an area definition file that we previously wrote.
 	 * Obviously other tools could create the file too.
 	 */
-	public void read(String filename) throws IOException {
+	private void readList(String filename) throws IOException {
 		Reader r = null;
-		List<SubArea> list = new ArrayList<SubArea>();
+		areas = new ArrayList<SubArea>();
 
 		Pattern pattern = Pattern.compile("([0-9]{8}):" +
 		" ([\\p{XDigit}x-]+),([\\p{XDigit}x-]+)" +
@@ -170,12 +181,10 @@ public class AreaList {
 						Integer.decode(matcher.group(5)));
 				SubArea a = new SubArea(b);
 				a.setMapid(Integer.parseInt(mapid));
-				list.add(a);
+				areas.add(a);
 			}
-
-			areas = list.toArray(new SubArea[list.size()]);
 		} catch (NumberFormatException e) {
-			areas = SUB_AREA;
+			areas = Collections.emptyList();
 			System.err.println("Bad number in areas list file");
 		} finally {
 			if (r != null)
@@ -183,7 +192,18 @@ public class AreaList {
 		}
 	}
 
-	public SubArea[] getAreas() {
+	private void readKml(String filename) throws IOException {
+		try {
+			KmlParser parser = new KmlParser();
+			parser.setReader(Utils.openFile(filename));
+			parser.parse();
+			areas = parser.getAreas();
+		} catch (XmlPullParserException e) {
+			throw new IOException("Unable to parse KML file " + filename, e);
+		}
+	}
+
+	public List<SubArea> getAreas() {
 		return areas;
 	}
 

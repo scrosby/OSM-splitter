@@ -17,24 +17,16 @@
 package uk.me.parabola.splitter;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.tools.bzip2.CBZip2InputStream;
 
 import uk.me.parabola.splitter.disk.CacheVerifier;
 
@@ -204,7 +196,8 @@ public class Main {
 				areaList.dump();
 			} catch (IOException e) {
 				areaList = null;
-				System.err.println("Could not read area list file " + e);
+				System.err.println("Could not read area list file");
+				e.printStackTrace();
 			}
 		}
 	}
@@ -255,7 +248,7 @@ public class Main {
 		for (SubArea a : areaList.getAreas())
 			a.setMapid(mapid++);
 
-		System.out.println(areaList.getAreas().length + " areas generated:");
+		System.out.println(areaList.getAreas().size() + " areas generated:");
 		for (SubArea a : areaList.getAreas()) {
 			System.out.println("Area " + a.getMapid() + " contains " + Utils.format(a.getSize()) + " nodes " + a.getBounds());
 		}
@@ -273,19 +266,20 @@ public class Main {
 	private void writeAreas(AreaList areaList) throws IOException, XmlPullParserException {
 		System.out.println("Writing out split osm files " + new Date());
 
-		SubArea[] allAreas = areaList.getAreas();
+		List<SubArea> allAreasList = areaList.getAreas();
 
-		int passesRequired = (int) Math.ceil((double) allAreas.length / (double) maxAreasPerPass);
-		maxAreasPerPass = (int) Math.ceil((double) allAreas.length / (double) passesRequired);
+		int passesRequired = (int) Math.ceil((double) allAreasList.size() / (double) maxAreasPerPass);
+		maxAreasPerPass = (int) Math.ceil((double) allAreasList.size() / (double) passesRequired);
 
 		if (passesRequired > 1) {
-			System.out.println("Processing " + allAreas.length + " areas in " + passesRequired + " passes, " + maxAreasPerPass + " areas at a time");
+			System.out.println("Processing " + allAreasList.size() + " areas in " + passesRequired + " passes, " + maxAreasPerPass + " areas at a time");
 		} else {
-			System.out.println("Processing " + allAreas.length + " areas in a single pass");
+			System.out.println("Processing " + allAreasList.size() + " areas in a single pass");
 		}
 
 		for (int i = 0; i < passesRequired; i++) {
-			SubArea[] currentAreas = new SubArea[Math.min(maxAreasPerPass, allAreas.length - i * maxAreasPerPass)];
+			SubArea[] currentAreas = new SubArea[Math.min(maxAreasPerPass, allAreasList.size() - i * maxAreasPerPass)];
+			SubArea[] allAreas = allAreasList.toArray(new SubArea[allAreasList.size()]);
 			System.arraycopy(allAreas, i * maxAreasPerPass, currentAreas, 0, currentAreas.length);
 
 			for (SubArea a : currentAreas)
@@ -334,7 +328,7 @@ public class Main {
 	private void processOsmFiles(OSMParser parser) throws IOException, XmlPullParserException {
 		for (String filename : filenames) {
 			System.out.println("Processing " + filename);
-			Reader reader = openFile(filename);
+			Reader reader = Utils.openFile(filename);
 			parser.setReader(reader);
 			try {
 				parser.parse();
@@ -381,31 +375,5 @@ public class Main {
 
 		w.println();
 		w.close();
-	}
-
-	/**
-	 * Open a file and apply filters necessary to reading it such as decompression.
-	 *
-	 * @param name The file to open.
-	 * @return A stream that will read the file, positioned at the beginning.
-	 * @throws FileNotFoundException If the file cannot be opened for any reason.
-	 */
-	private Reader openFile(String name) throws IOException {
-		InputStream is = new FileInputStream(name);
-		if (name.endsWith(".gz")) {
-			try {
-				is = new GZIPInputStream(is);
-			} catch (IOException e) {
-				throw new IOException( "Could not read " + name + " as a gz compressed file", e);
-			}
-		}
-		if (name.endsWith(".bz2")) {
-			try {
-				is.read(); is.read(); is = new CBZip2InputStream(is);
-			} catch (IOException e) {
-				throw new IOException( "Could not read " + name + " as a bz2 compressed file", e);
-			}
-		}
-		return new InputStreamReader(is, Charset.forName("UTF-8"));
 	}
 }
