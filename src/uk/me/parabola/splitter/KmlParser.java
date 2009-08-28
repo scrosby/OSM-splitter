@@ -99,10 +99,10 @@ public class KmlParser extends AbstractXppParser {
 		} else if (state == State.Coordinates) {
 			state = State.LinearRing;
 		} else if (name.equals("Placemark")) {
-			int minLat = currentCoords[0];
-			int minLon = currentCoords[1];
-			int maxLat = currentCoords[4];
-			int maxLon = currentCoords[5];
+			int minLat = currentCoords[1];
+			int minLon = currentCoords[0];
+			int maxLat = currentCoords[5];
+			int maxLon = currentCoords[4];
 			SubArea area = new SubArea(new Area(minLat, minLon, maxLat, maxLon));
 			area.setMapid(currentId);
 			areas.add(area);
