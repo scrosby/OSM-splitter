@@ -112,7 +112,7 @@ public class AreaList {
 
 				pw.format(Locale.ROOT,
 								  "  <Placemark>\n" +
-									"    <name>Map %1$d</name>\n" +
+									"    <name>%1$d</name>\n" +
 									"    <Polygon>\n" +
 									"      <outerBoundaryIs>\n" +
 									"        <LinearRing>\n" +
