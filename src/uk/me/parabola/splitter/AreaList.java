@@ -110,7 +110,8 @@ public class AreaList {
 				double north = Utils.toDegrees(b.getMaxLat());
 				double east = Utils.toDegrees(b.getMaxLong());
 
-				pw.format("  <Placemark>\n" +
+				pw.format(Locale.ROOT,
+								  "  <Placemark>\n" +
 									"    <name>Map %1$d</name>\n" +
 									"    <Polygon>\n" +
 									"      <outerBoundaryIs>\n" +
