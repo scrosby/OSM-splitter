@@ -167,7 +167,7 @@ public class Main {
 		mapid = config.getProperty("mapid", config.getProperty("mapname", mapid));
 		overlapAmount = config.getProperty("overlap", overlapAmount);
 		maxNodes = config.getProperty("max-nodes", maxNodes);
-		description = config.getProperty("description", "OSM Map");
+		description = config.getProperty("description");
 		resolution = config.getProperty("resolution", resolution);
 		if (resolution < 1 || resolution > 24) {
 			System.err.println("The --resolution parameter must be a value between 1 and 24. Resetting to 13.");
@@ -369,7 +369,10 @@ public class Main {
 		for (SubArea a : areaList.getAreas()) {
 			w.println();
 			w.format("mapname: %d\n", a.getMapid());
-			w.println("description: " + description);
+			if (description == null)
+				w.println("# description: OSM Map");
+			else
+				w.println("description: " + description);
 			w.format("input-file: %d.osm.gz\n", a.getMapid());
 		}
 
