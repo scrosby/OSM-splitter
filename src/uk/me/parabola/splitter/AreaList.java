@@ -37,9 +37,9 @@ import org.xmlpull.v1.XmlPullParserException;
  * A list of areas.  It can be read and written to a file.
  */
 public class AreaList {
-	private List<SubArea> areas;
+	private List<Area> areas;
 
-	public AreaList(List<SubArea> areas) {
+	public AreaList(List<Area> areas) {
 		this.areas = areas;
 	}
 
@@ -68,15 +68,14 @@ public class AreaList {
 			//pw.format("# Options: max-nodes=%d\n", main.getMaxNodes());
 			pw.println("#");
 
-			for (SubArea a : areas) {
-				Area b = a.getBounds();
+			for (Area area : areas) {
 				pw.format(Locale.ROOT, "%08d: %d,%d to %d,%d\n",
-						a.getMapid(),
-						b.getMinLat(), b.getMinLong(),
-						b.getMaxLat(), b.getMaxLong());
+						area.getMapId(),
+						area.getMinLat(), area.getMinLong(),
+						area.getMaxLat(), area.getMaxLong());
 				pw.format(Locale.ROOT, "#       : %f,%f to %f,%f\n",
-						Utils.toDegrees(b.getMinLat()), Utils.toDegrees(b.getMinLong()),
-						Utils.toDegrees(b.getMaxLat()), Utils.toDegrees(b.getMaxLong()));
+						Utils.toDegrees(area.getMinLat()), Utils.toDegrees(area.getMinLong()),
+						Utils.toDegrees(area.getMaxLat()), Utils.toDegrees(area.getMaxLong()));
 				pw.println();
 			}
 
@@ -105,12 +104,11 @@ public class AreaList {
 								 "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n" +
 								 "<Document>");
 
-			for (SubArea a : areas) {
-				Area b = a.getBounds();
-				double south = Utils.toDegrees(b.getMinLat());
-				double west = Utils.toDegrees(b.getMinLong());
-				double north = Utils.toDegrees(b.getMaxLat());
-				double east = Utils.toDegrees(b.getMaxLong());
+			for (Area area : areas) {
+				double south = Utils.toDegrees(area.getMinLat());
+				double west = Utils.toDegrees(area.getMinLong());
+				double north = Utils.toDegrees(area.getMaxLat());
+				double east = Utils.toDegrees(area.getMaxLong());
 
 				pw.format(Locale.ROOT,
 								  "  <Placemark>\n" +
@@ -128,7 +126,7 @@ public class AreaList {
 									"        </LinearRing>\n" +
 									"      </outerBoundaryIs>\n" +
 									"    </Polygon>\n" +
-									"  </Placemark>\n", a.getMapid(), south, west, north, east);
+									"  </Placemark>\n", area.getMapId(), south, west, north, east);
 			}
 			pw.print("</Document>\n</kml>");
 		} catch (IOException e) {
@@ -154,7 +152,7 @@ public class AreaList {
 	 */
 	private void readList(String filename) throws IOException {
 		Reader r = null;
-		areas = new ArrayList<SubArea>();
+		areas = new ArrayList<Area>();
 
 		Pattern pattern = Pattern.compile("([0-9]{8}):" +
 		" ([\\p{XDigit}x-]+),([\\p{XDigit}x-]+)" +
@@ -174,14 +172,13 @@ public class AreaList {
 				matcher.find();
 				String mapid = matcher.group(1);
 
-				Area b = new Area(
+				Area area = new Area(
 						Integer.decode(matcher.group(2)),
 						Integer.decode(matcher.group(3)),
 						Integer.decode(matcher.group(4)),
 						Integer.decode(matcher.group(5)));
-				SubArea a = new SubArea(b);
-				a.setMapid(Integer.parseInt(mapid));
-				areas.add(a);
+				area.setMapId(Integer.parseInt(mapid));
+				areas.add(area);
 			}
 		} catch (NumberFormatException e) {
 			areas = Collections.emptyList();
@@ -203,15 +200,14 @@ public class AreaList {
 		}
 	}
 
-	public List<SubArea> getAreas() {
+	public List<Area> getAreas() {
 		return areas;
 	}
 
 	public void dump() {
 		System.out.println("Areas read from file");
-		for (SubArea a : areas) {
-			Area b = a.getBounds();
-			System.out.println(a.getMapid() + " " + b.toString());
+		for (Area area : areas) {
+			System.out.println(area.getMapId() + " " + area.toString());
 		}
 	}
 }

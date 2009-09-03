@@ -17,12 +17,12 @@ public class KmlParser extends AbstractXppParser {
 	private State state = State.None;
 	private int currentId;
 	private int[] currentCoords = new int[10];
-	private List<SubArea> areas = new ArrayList<SubArea>();
+	private List<Area> areas = new ArrayList<Area>();
 
 	public KmlParser() throws XmlPullParserException {
 	}
 
-	public List<SubArea> getAreas() {
+	public List<Area> getAreas() {
 		return areas;
 	}
 
@@ -103,9 +103,9 @@ public class KmlParser extends AbstractXppParser {
 			int minLon = currentCoords[0];
 			int maxLat = currentCoords[5];
 			int maxLon = currentCoords[4];
-			SubArea area = new SubArea(new Area(minLat, minLon, maxLat, maxLon));
-			area.setMapid(currentId);
-			areas.add(area);
+			Area a = new Area(minLat, minLon, maxLat, maxLon);
+			a.setMapId(currentId);
+			areas.add(a);
 			state = State.None;
 		}
 	}

@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2008 Steve Ratcliffe
- * 
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 3
- *  as published by the Free Software Foundation.
- * 
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- * 
- * 
- * Author: Steve Ratcliffe
- * Create date: 14-Dec-2008
- */
 package uk.me.parabola.splitter;
 
 import java.io.FileOutputStream;
@@ -28,68 +12,22 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
-/**
- * Represents a tile, a subarea of the whole map.
- * 
- * @author Steve Ratcliffe
- */
-public class SubArea {
-
+public class OSMWriter {
 	private final Area bounds;
-	private int mapid;
-
-	private Area extendedBounds;
 	private Writer writer;
+	private Area extendedBounds;
 
-	private SplitIntList coords;
-	private int size;
-
-	public SubArea(Area bounds, SplitIntList coords) {
+	public OSMWriter(Area bounds) {
 		this.bounds = bounds;
-		this.coords = coords;
 	}
 
-	public SubArea(Area area) {
-		this.bounds = area;
-		coords = new SplitIntList();
-	}
-
-	public void clear() {
-		if (coords != null)
-			size = coords.size();
-		coords = null;
-	}
-
-	public Area getBounds() {
-		return bounds;
-	}
-
-	public SplitIntList getCoords() {
-		return coords;
-	}
-
-	public int getMapid() {
-		return mapid;
-	}
-
-	public void add(int co) {
-		coords.add(co);
-	}
-
-	public int getSize() {
-		if (coords != null)
-			return coords.size();
-		else
-			return size;
-	}
-
-	public void initForWrite(int extra) {
+	public void initForWrite(int mapId, int extra) {
 		extendedBounds = new Area(bounds.getMinLat() - extra,
-				bounds.getMinLong() - extra,
-				bounds.getMaxLat() + extra,
-				bounds.getMaxLong() + extra);
+						bounds.getMinLong() - extra,
+						bounds.getMaxLat() + extra,
+						bounds.getMaxLong() + extra);
 
-		String filename = new Formatter().format(Locale.ROOT, "%08d.osm.gz", mapid).toString();
+		String filename = new Formatter().format(Locale.ROOT, "%08d.osm.gz", mapId).toString();
 		try {
 			FileOutputStream fos = new FileOutputStream(filename);
 			OutputStream zos = new GZIPOutputStream(fos);
@@ -181,9 +119,9 @@ public class SubArea {
 	}
 
 	private void writeTags(Element element) throws IOException {
-		Iterator<Map.Entry<String,String>> it = element.tagsIterator();
+		Iterator<Map.Entry<String, String>> it = element.tagsIterator();
 		while (it.hasNext()) {
-			Map.Entry<String,String> entry = it.next();
+			Map.Entry<String, String> entry = it.next();
 			writeString("<tag k='");
 			writeAttribute(entry.getKey());
 			writeString("' v='");
@@ -194,7 +132,7 @@ public class SubArea {
 
 	private void writeAttribute(String value) throws IOException {
 		for (int i = 0; i < value.length(); i++) {
-		  char c = value.charAt(i);
+			char c = value.charAt(i);
 			if (c == '\'')
 				writeString("&apos;");
 			else if (c == '&') {
@@ -206,12 +144,8 @@ public class SubArea {
 		}
 	}
 
-	void setMapid(int mapid) {
-		this.mapid = mapid;
-	}
-
-	private char[] charBuf = new char[4096];
 	private int index;
+	private final char[] charBuf = new char[4096];
 
 	private void checkFlush(int i) throws IOException {
 		if (charBuf.length - index < i) {
@@ -228,8 +162,7 @@ public class SubArea {
 		int start = 0;
 		int end = value.length();
 		int len;
-		while ((len = charBuf.length - index) < end - start)
-		{
+		while ((len = charBuf.length - index) < end - start) {
 			value.getChars(start, start + len, charBuf, index);
 			start += len;
 			index = charBuf.length;

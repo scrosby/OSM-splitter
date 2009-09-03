@@ -1,12 +1,27 @@
 package uk.me.parabola.splitter;
 
 /**
- * Collects node coordinates in a map.
+ * Builds up a density map.
  */
-class NodeCollector implements MapCollector {
+class DensityMapCollector implements MapCollector {
 
-	private SplitIntList coords = new SplitIntList();
+	private final DensityMap densityMap;
 	private final MapDetails details = new MapDetails();
+
+	DensityMapCollector(int resolution) {
+		this(null, resolution);
+	}
+
+	DensityMapCollector(Area bounds, int resolution) {
+		if (bounds == null) {
+			// If we don't receive any bounds we have to assume the whole planet
+			bounds = new Area(-0x400000, -0x800000, 0x400000, 0x800000);
+		}
+		else {
+			bounds = RoundingUtils.round(bounds, resolution);
+		}
+		densityMap = new DensityMap(bounds, resolution);
+	}
 
 	@Override
 	public boolean isStartNodeOnly() {
@@ -15,14 +30,9 @@ class NodeCollector implements MapCollector {
 
 	@Override
 	public void startNode(int id, double lat, double lon) {
-		// Since we are rounding areas to fit on a low zoom boundary we
-		// can drop the bottom 8 bits of the lat and lon and then fit
-		// the whole lot into a single int.
 		int glat = Utils.toMapUnit(lat);
 		int glon = Utils.toMapUnit(lon);
-		int coord = ((glat << 8) & 0xffff0000) + ((glon >> 8) & 0xffff);
-
-		coords.add(coord);
+		densityMap.addNode(glat, glon);
 		details.addToBounds(glat, glon);
 	}
 
@@ -62,16 +72,11 @@ class NodeCollector implements MapCollector {
 	@Override
 	public void endMap() {}
 
-	@Override
 	public Area getExactArea() {
 		return details.getBounds();
 	}
 
-	@Override
 	public SplittableArea getRoundedArea(int resolution) {
 		Area bounds = RoundingUtils.round(details.getBounds(), resolution);
-		SplittableArea result = new SplittableNodeArea(bounds, coords, resolution);
-		coords = null;
-		return result;
-	}
-}
+		return new SplittableDensityArea(densityMap.subset(bounds));
+	}}

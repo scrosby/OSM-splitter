@@ -65,17 +65,17 @@ public class TestRounding {
 	}
 
 	private void testRoundDown(int value, int shift, int outcome) {
-		Assert.assertEquals(Utils.roundDown(value, shift), outcome, "Before: " + Integer.toHexString(value) +
-						", After: " + Integer.toHexString(Utils.roundDown(value, shift)));
+		Assert.assertEquals(RoundingUtils.roundDown(value, shift), outcome, "Before: " + Integer.toHexString(value) +
+						", After: " + Integer.toHexString(RoundingUtils.roundDown(value, shift)));
 	}
 
 	private void testRoundUp(int value, int shift, int outcome) {
-		Assert.assertEquals(Utils.roundUp(value, shift), outcome, "Before: " + Integer.toHexString(value) +
-						", After: " + Integer.toHexString(Utils.roundUp(value, shift)));
+		Assert.assertEquals(RoundingUtils.roundUp(value, shift), outcome, "Before: " + Integer.toHexString(value) +
+						", After: " + Integer.toHexString(RoundingUtils.roundUp(value, shift)));
 	}
 
 	private void testRound(int value, int shift, int outcome) {
-		Assert.assertEquals(Utils.round(value, shift), outcome, "Before: " + Integer.toHexString(value) +
-						", After: " + Integer.toHexString(Utils.round(value, shift)));
+		Assert.assertEquals(RoundingUtils.round(value, shift), outcome, "Before: " + Integer.toHexString(value) +
+						", After: " + Integer.toHexString(RoundingUtils.round(value, shift)));
 	}
 }

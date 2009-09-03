@@ -51,7 +51,7 @@ public class Main {
 	private String description;
 
 	// Traditional default, but please use a different one!
-	private int mapid = 63240001;
+	private int mapId = 63240001;
 
 	// The amount in map units that tiles overlap (note that the final img's will not overlap
 	// but the input files do).
@@ -78,6 +78,8 @@ public class Main {
 	private boolean generateCache;
 	// Used to verify whether an existing cache is valid or not.
 	private CacheVerifier verifier;
+
+	private boolean densityMap = true;
 
 	private String kmlOutputFile;
 
@@ -137,8 +139,8 @@ public class Main {
 			areaList.writeKml(kmlOutputFile);
 		}
 
-		writeAreas(areaList);
-		writeArgsFile();
+		writeAreas(areaList.getAreas());
+		writeArgsFile(areaList.getAreas());
 	}
 
 	/**
@@ -164,7 +166,7 @@ public class Main {
 
 		EnhancedProperties config = new EnhancedProperties(props);
 
-		mapid = config.getProperty("mapid", config.getProperty("mapname", mapid));
+		mapId = config.getProperty("mapid", config.getProperty("mapname", mapId));
 		overlapAmount = config.getProperty("overlap", overlapAmount);
 		maxNodes = config.getProperty("max-nodes", maxNodes);
 		description = config.getProperty("description");
@@ -172,6 +174,10 @@ public class Main {
 		if (resolution < 1 || resolution > 24) {
 			System.err.println("The --resolution parameter must be a value between 1 and 24. Resetting to 13.");
 			resolution = 13;
+		}
+		if (config.getProperty("legacy-mode", false)) {
+			System.out.println("WARNING: This option is considered deprecated and will be removed in a future build. Specifying --legacy-split will cause the first stage of the split to take much more memory!");
+			densityMap = false;
 		}
 		mixed = config.getProperty("mixed", false);
 		diskCachePath = config.getProperty("cache");
@@ -208,14 +214,14 @@ public class Main {
 	 */
 	private AreaList calculateAreas() throws IOException, XmlPullParserException {
 
-		NodeCollector nodes = new NodeCollector();
+		MapCollector nodes = densityMap ? new DensityMapCollector(resolution) : new NodeCollector();
 		MapProcessor processor = nodes;
 		boolean loadFromCache = false;
 		if (diskCachePath == null) {
 			System.out.println("The input osm file(s) will be re-parsed during the split (slower) because no --cache parameter was specified");
 		} else {
 			if (generateCache) {
-				processor = new CachingMapProcessor(diskCachePath, verifier, nodes);
+				processor = new CachingMapProcessor(diskCachePath, verifier, processor);
 				generateCache = false;
 			} else {
 				loadFromCache = true;
@@ -237,20 +243,18 @@ public class Main {
 		System.out.println("Time: " + new Date());
 
 		Area exactArea = nodes.getExactArea();
-		SubArea totalArea = nodes.getRoundedArea(resolution);
+		SplittableArea splittableArea = nodes.getRoundedArea(resolution);
 		System.out.println("Exact map coverage is " + exactArea);
-		System.out.println("Rounded map coverage is " + totalArea.getBounds());
+		System.out.println("Rounded map coverage is " + splittableArea.getBounds());
 		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
-		AreaSplitter splitter = new AreaSplitter(resolution);
-		areaList = splitter.split(totalArea, maxNodes);
 
-		// Set the mapid's
-		for (SubArea a : areaList.getAreas())
-			a.setMapid(mapid++);
+		List<Area> areas = splittableArea.split(maxNodes);
+		areaList = new AreaList(areas);
 
-		System.out.println(areaList.getAreas().size() + " areas generated:");
-		for (SubArea a : areaList.getAreas()) {
-			System.out.println("Area " + a.getMapid() + " contains " + Utils.format(a.getSize()) + " nodes " + a.getBounds());
+		System.out.println(areas.size() + " areas generated:");
+		for (Area area : areas) {
+			System.out.println("Area " + mapId + " covers " + area.toHexString());
+			area.setMapId(mapId++);
 		}
 
 		areaList.write("areas.list");
@@ -263,33 +267,31 @@ public class Main {
 	 * to the file(s) that should contain it.
 	 * @param areaList Area list determined on the first pass.
 	 */
-	private void writeAreas(AreaList areaList) throws IOException, XmlPullParserException {
+	private void writeAreas(List<Area> areas) throws IOException, XmlPullParserException {
 		System.out.println("Writing out split osm files " + new Date());
 
-		List<SubArea> allAreasList = areaList.getAreas();
-
-		int passesRequired = (int) Math.ceil((double) allAreasList.size() / (double) maxAreasPerPass);
-		maxAreasPerPass = (int) Math.ceil((double) allAreasList.size() / (double) passesRequired);
+		int passesRequired = (int) Math.ceil((double) areas.size() / (double) maxAreasPerPass);
+		maxAreasPerPass = (int) Math.ceil((double) areas.size() / (double) passesRequired);
 
 		if (passesRequired > 1) {
-			System.out.println("Processing " + allAreasList.size() + " areas in " + passesRequired + " passes, " + maxAreasPerPass + " areas at a time");
+			System.out.println("Processing " + areas.size() + " areas in " + passesRequired + " passes, " + maxAreasPerPass + " areas at a time");
 		} else {
-			System.out.println("Processing " + allAreasList.size() + " areas in a single pass");
+			System.out.println("Processing " + areas.size() + " areas in a single pass");
 		}
 
 		for (int i = 0; i < passesRequired; i++) {
-			SubArea[] currentAreas = new SubArea[Math.min(maxAreasPerPass, allAreasList.size() - i * maxAreasPerPass)];
-			SubArea[] allAreas = allAreasList.toArray(new SubArea[allAreasList.size()]);
-			System.arraycopy(allAreas, i * maxAreasPerPass, currentAreas, 0, currentAreas.length);
+			OSMWriter[] currentWriters = new OSMWriter[Math.min(maxAreasPerPass, areas.size() - i * maxAreasPerPass)];
+			for (int j = 0; j < currentWriters.length; j++) {
+				Area area = areas.get(i * maxAreasPerPass + j);
+				currentWriters[j] = new OSMWriter(area);
+				currentWriters[j].initForWrite(area.getMapId(), overlapAmount);
+			}
 
-			for (SubArea a : currentAreas)
-				a.initForWrite(overlapAmount);
+			System.out.println("Starting pass " + (i + 1) + " of " + passesRequired + ", processing " + currentWriters.length +
+							" areas (" + areas.get(i * maxAreasPerPass).getMapId() + " to " +
+							areas.get(i * maxAreasPerPass + currentWriters.length - 1).getMapId() + ')');
 
-			System.out.println("Starting pass " + (i + 1) + " of " + passesRequired + ", processing " + currentAreas.length +
-							" areas (" + currentAreas[0].getMapid() + " to " +
-							currentAreas[currentAreas.length - 1].getMapid() + ')');
-
-			MapProcessor processor = new Splitter(currentAreas);
+			MapProcessor processor = new SplitProcessor(currentWriters);
 			if (generateCache) {
 				if (passesRequired == 1) {
 					System.out.println("*********************************************************************");
@@ -344,7 +346,7 @@ public class Main {
 	 * for the split file pieces.  You are encouraged to edit the file and so it
 	 * contains a template of all the arguments that you might want to use.
 	 */
-	protected void writeArgsFile() {
+	protected void writeArgsFile(List<Area> areas) {
 		PrintWriter w;
 		try {
 			w = new PrintWriter(new FileWriter("template.args"));
@@ -366,14 +368,14 @@ public class Main {
 		w.println();
 		w.println("# Following is a list of map tiles.  Add a suitable description");
 		w.println("# for each one.");
-		for (SubArea a : areaList.getAreas()) {
+		for (Area a : areas) {
 			w.println();
-			w.format("mapname: %d\n", a.getMapid());
+			w.format("mapname: %d\n", a.getMapId());
 			if (description == null)
 				w.println("# description: OSM Map");
 			else
 				w.println("description: " + description);
-			w.format("input-file: %d.osm.gz\n", a.getMapid());
+			w.format("input-file: %d.osm.gz\n", a.getMapId());
 		}
 
 		w.println();

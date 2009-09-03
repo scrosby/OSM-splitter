@@ -24,14 +24,14 @@ package uk.me.parabola.splitter;
  */
 public class Area {
 
+	private int mapId;
 	private final int minLat;
 	private final int minLong;
 	private final int maxLat;
 	private final int maxLong;
 
 	/**
-	 * Create an area from the given coordinates.  We ensure that no dimention
-	 * is zero.
+	 * Create an area from the given Garmin coordinates. We ensure that no dimension is zero.
 	 *
 	 * @param minLat The western latitude.
 	 * @param minLong The southern longitude.
@@ -50,6 +50,14 @@ public class Area {
 			this.maxLong = maxLong+1;
 		else
 			this.maxLong = maxLong;
+	}
+
+	public void setMapId(int mapId) {
+		this.mapId = mapId;
+	}
+
+	public int getMapId() {
+		return mapId;
 	}
 
 	public int getMinLat() {

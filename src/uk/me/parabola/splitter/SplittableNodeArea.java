@@ -17,97 +17,108 @@
 package uk.me.parabola.splitter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
 
 /**
- * Used to split the SubArea's down into roughly equal sized pieces.
+ * Used to split an area down into roughly equal sized pieces.
  * They will all have less than a specified number of nodes.
  * 
  * @author Steve Ratcliffe
  */
-public class AreaSplitter {
+public class SplittableNodeArea implements SplittableArea {
 	private final int shift;
+	private final int resolution;
+	private final Area bounds;
+	private SplitIntList coords;
+	private int size;
 
-	public AreaSplitter(int resolution) {
+	public SplittableNodeArea(Area bounds, int resolution) {
+		this(bounds, new SplitIntList(), resolution);
+	}
+
+	public SplittableNodeArea(Area bounds, SplitIntList coords, int resolution) {
+		this.bounds = bounds;
+		this.coords = coords;
+		this.resolution = resolution;
 		shift = 24 - resolution;
 	}
 
+	@Override
+	public Area getBounds() {
+		return bounds;
+	}
+
+	public void clear() {
+		if (coords != null)
+			size = coords.size();
+		coords = null;
+	}
+
+	public void add(int co) {
+		coords.add(co);
+	}
+
+	public int getSize() {
+		if (coords != null)
+			return coords.size();
+		else
+			return size;
+	}
 	/**
 	 * Split a single area which would normally be the complete area of the map.
 	 * We just split areas that are too big into two.  We make a rough determination
 	 * of the largest dimension and split that way.
 	 * 
 	 * @param area The original area.
-	 * @param max The maximum number of nodes that any area can contain.
+	 * @param maxNodes The maximum number of nodes that any area can contain.
 	 * @return An array of areas.  Each will have less than the specified number of nodes.
 	 */
-	public AreaList split(SubArea area, int max) {
-		List<SubArea> areas = new ArrayList<SubArea>();
+	@Override
+	public List<Area> split(int maxNodes) {
+		if (coords == null)
+			return Collections.emptyList();
 
-		areas.add(area);
-
-		boolean notDone = true;
-		while (notDone) {
-
-			notDone = false;
-			ListIterator<SubArea> it = areas.listIterator();
-			while (it.hasNext()) {
-				SubArea workarea = it.next();
-				SplitIntList list = workarea.getCoords();
-				if (list == null) {
-					continue;
-				}
-
-				Area bounds = workarea.getBounds();
-
-				// If there's already less than max-nodes in the area we don't split it further
-				int size = list.size();
-				if (size < max) {
-					workarea.clear();
-					continue;
-				}
-				int height = bounds.getHeight();
-				int width = bounds.getWidth();
-
-				// If we've already split the area down to the minimum allowable size, we don't split it further
-				boolean minHeight = height <= 2 << shift;
-				boolean minWidth = width <= 2 << shift;
-				if (minHeight && minWidth) {
-					System.out.println("Area " + bounds + " contains " + Utils.format(workarea.getSize())
-									+ " nodes but is already at the minimum size so can't be split further");
-					continue;
-				}
-
-				// Decide whether to split vertically or horizontally and go ahead with the split
-				SubArea[] sub;
-				int width1 = (int) (width * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
-				int width2 = (int) (width * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
-				width = Math.max(width1, width2);
-				if (height > width && !minHeight) {
-					sub = splitVert(workarea);
-				}
-				else {
-					sub = splitHoriz(workarea);
-				}
-
-				it.set(sub[0]);
-				it.add(sub[1]);
-				workarea.clear();
-				notDone = true;
-			}
+		if (coords.size() < maxNodes) {
+			clear();
+			return Collections.singletonList(bounds);
 		}
-		return new AreaList(areas);
+
+		int height = bounds.getHeight();
+		int width = bounds.getWidth();
+
+		// If we've already split the area down to the minimum allowable size, we don't split it further
+		boolean minHeight = height <= 2 << shift;
+		boolean minWidth = width <= 2 << shift;
+		if (minHeight && minWidth) {
+			System.out.println("Area " + bounds + " contains " + Utils.format(getSize())
+							+ " nodes but is already at the minimum size so can't be split further");
+			return Collections.singletonList(bounds);
+		}
+
+		List<Area> results = new ArrayList<Area>();
+
+		// Decide whether to split vertically or horizontally and go ahead with the split
+		int width1 = (int) (width * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
+		int width2 = (int) (width * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMaxLat()))));
+		width = Math.max(width1, width2);
+		SplittableNodeArea[] splitResult;
+		if (height > width && !minHeight) {
+			splitResult = splitVert();
+		} else {
+			splitResult = splitHoriz();
+		}
+		clear();
+		results.addAll(splitResult[0].split(maxNodes));
+		results.addAll(splitResult[1].split(maxNodes));
+		return results;
 	}
 
-	private SubArea[] splitHoriz(SubArea base) {
-		Area bounds = base.getBounds();
+	protected SplittableNodeArea[] splitHoriz() {
 		int left = bounds.getMinLong();
 		int right = bounds.getMaxLong();
 
-		SplitIntList baseCoords = base.getCoords();
-
-	  SplitIntList.Iterator it = baseCoords.getIterator();
+	  SplitIntList.Iterator it = coords.getIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
@@ -122,10 +133,10 @@ public class AreaSplitter {
 		Area b1 = new Area(bounds.getMinLat(), bounds.getMinLong(), bounds.getMaxLat(), mid);
 		Area b2 = new Area(bounds.getMinLat(), mid, bounds.getMaxLat(), bounds.getMaxLong());
 
-		SubArea a1 = new SubArea(b1);
-		SubArea a2 = new SubArea(b2);
+		SplittableNodeArea a1 = new SplittableNodeArea(b1, resolution);
+		SplittableNodeArea a2 = new SplittableNodeArea(b2, resolution);
 
-		it = baseCoords.getDeletingIterator();
+		it = coords.getDeletingIterator();
 		while (it.hasNext()) {
 			int co = it.next();
 			if (extractLongitude(co) < mid) {
@@ -134,19 +145,14 @@ public class AreaSplitter {
 				a2.add(co);
 			}
 		}
-
-		return new SubArea[]{a1, a2};
+		return new SplittableNodeArea[]{a1, a2};
 	}
 
-	private SubArea[] splitVert(SubArea base) {
-
-		Area bounds = base.getBounds();
+	protected SplittableNodeArea[] splitVert() {
 		int top = bounds.getMaxLat();
 		int bot = bounds.getMinLat();
 
-		SplitIntList caseCoords = base.getCoords();
-
-		SplitIntList.Iterator it = caseCoords.getIterator();
+		SplitIntList.Iterator it = coords.getIterator();
 		int count = 0;
 		long total = 0;
 		while (it.hasNext()) {
@@ -161,12 +167,10 @@ public class AreaSplitter {
 		Area b1 = new Area(bounds.getMinLat(), bounds.getMinLong(), mid, bounds.getMaxLong());
 		Area b2 = new Area(mid, bounds.getMinLong(), bounds.getMaxLat(), bounds.getMaxLong());
 
-		SubArea a1 = new SubArea(b1);
-		SubArea a2 = new SubArea(b2);
+		SplittableNodeArea a1 = new SplittableNodeArea(b1, resolution);
+		SplittableNodeArea a2 = new SplittableNodeArea(b2, resolution);
 
-		caseCoords = base.getCoords();
-
-		it = caseCoords.getDeletingIterator();
+		it = coords.getDeletingIterator();
 		while (it.hasNext()) {
 			int co = it.next();
 			if (extractLatitude(co) <= mid) {
@@ -175,8 +179,7 @@ public class AreaSplitter {
 				a2.add(co);
 			}
 		}
-
-		return new SubArea[]{a1, a2};
+		return new SplittableNodeArea[]{a1, a2};
 	}
 
 	private int extractLatitude(int value) {
@@ -199,7 +202,7 @@ public class AreaSplitter {
 			mid = second - limitoff;
 
 		// Round to a garmin map unit at the desired zoom level.
-		int nmid = Utils.round(mid, shift);
+		int nmid = RoundingUtils.round(mid, shift);
 
 		// Check that the midpoint is on the appropriate alignment boundary. If not, adjust
 		int alignment = 1 << shift;

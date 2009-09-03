@@ -23,13 +23,13 @@ import java.util.Date;
 /**
  * Splits a map into multiple areas.
  */
-class Splitter implements MapProcessor {
+class SplitProcessor implements MapProcessor {
 
 	private final SplitIntMap coords = new SplitIntMap();
 	private final SplitIntMap ways = new SplitIntMap();
 	private final IntObjMap<long[]> bigWays = new IntObjMap<long[]>();
 
-	private final SubArea[] areas;
+	private final OSMWriter[] writers;
 
 	private Node currentNode = new Node();
 	private int currentNodeAreaSet;
@@ -40,10 +40,10 @@ class Splitter implements MapProcessor {
 	private Relation currentRelation = new Relation();
 	private BitSet currentRelAreaSet;
 
-	Splitter(SubArea[] areas) {
-		this.areas = areas;
-		currentWayAreaSet = new BitSet(areas.length);
-		currentRelAreaSet = new BitSet(areas.length);
+	SplitProcessor(OSMWriter[] writers) {
+		this.writers = writers;
+		currentWayAreaSet = new BitSet(writers.length);
+		currentRelAreaSet = new BitSet(writers.length);
 	}
 
 	@Override
@@ -181,14 +181,14 @@ class Splitter implements MapProcessor {
 
 	@Override
 	public void endMap() {
-		for (SubArea area : areas) {
-			area.finishWrite();
+		for (OSMWriter writer : writers) {
+			writer.finishWrite();
 		}
 	}
 
 	private void writeNode() throws IOException {
-		for (int n = 0; n < areas.length; n++) {
-			boolean found = areas[n].write(currentNode);
+		for (int n = 0; n < writers.length; n++) {
+			boolean found = writers[n].write(currentNode);
 			if (found) {
 				if (currentNodeAreaSet == 0) {
 					currentNodeAreaSet = n + 1;
@@ -215,7 +215,7 @@ class Splitter implements MapProcessor {
 				// this way falls into 4 or less areas (the normal case). Store these areas in the ways map
 				int set = 0;
 				for (int n = currentWayAreaSet.nextSetBit(0); n >= 0; n = currentWayAreaSet.nextSetBit(n + 1)) {
-					areas[n].write(currentWay);
+					writers[n].write(currentWay);
 					// add one to the area so we're in the range 1-255. This is because we treat 0 as the
 					// equivalent of a null
 					set = set << 8 | (n + 1);
@@ -226,7 +226,7 @@ class Splitter implements MapProcessor {
 				// these areas in the bigWays map
 				long[] set = new long[currentWayAreaSet.size() / 64];
 				for (int n = currentWayAreaSet.nextSetBit(0); n >= 0; n = currentWayAreaSet.nextSetBit(n + 1)) {
-					areas[n].write(currentWay);
+					writers[n].write(currentWay);
 					set[n / 64] |= 1L << (n % 64);
 				}
 				bigWays.put(currentWay.getId(), set);
@@ -243,7 +243,7 @@ class Splitter implements MapProcessor {
 		}
 		for (int n = currentRelAreaSet.nextSetBit(0); n >= 0; n = currentRelAreaSet.nextSetBit(n + 1)) {
 			// if n is out of bounds, then something has gone wrong
-			areas[n].write(currentRelation);
+			writers[n].write(currentRelation);
 		}
 	}
 
