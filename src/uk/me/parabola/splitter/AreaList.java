@@ -102,7 +102,16 @@ public class AreaList {
 
 			pw.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 								 "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n" +
-								 "<Document>");
+								 "<Document>\n" +
+								 "  <Style id=\"transWhitePoly\">\n" +
+								 "    <LineStyle>\n" +
+								 "      <width>1.5</width>\n" +
+								 "    </LineStyle>\n" +
+								 "    <PolyStyle>\n" +
+								 "      <color>00ffffff</color>\n" +
+								 "      <colorMode>normal</colorMode>\n" +
+								 "    </PolyStyle>\n" +
+								 "  </Style>\n");
 
 			for (Area area : areas) {
 				double south = Utils.toDegrees(area.getMinLat());
@@ -113,6 +122,12 @@ public class AreaList {
 				pw.format(Locale.ROOT,
 								  "  <Placemark>\n" +
 									"    <name>%1$d</name>\n" +
+									"    <styleUrl>#transWhitePoly</styleUrl>\n" +
+									"      <description>\n" +
+									"        <![CDATA[\n" +
+									"          Splitter tile for mkgmap\n" +
+									"          ]]>\n" +
+									"      </description>\n" +
 									"    <Polygon>\n" +
 									"      <outerBoundaryIs>\n" +
 									"        <LinearRing>\n" +
