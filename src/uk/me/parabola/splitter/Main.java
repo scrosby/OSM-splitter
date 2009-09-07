@@ -34,7 +34,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * Splitter for OSM files with the purpose of providing input files for mkgmap.
- *
+ * <p/>
  * The input file is split so that no piece has more than a given number of nodes in it.
  *
  * @author Steve Ratcliffe
@@ -100,21 +100,35 @@ public class Main {
 		}
 
 		System.out.println("Time finished: " + new Date());
-		System.out.println("Total time taken: " + (System.currentTimeMillis() - start)/1000 + "s");
+		System.out.println("Total time taken: " + (System.currentTimeMillis() - start) / 1000 + "s");
 	}
 
 	private void split(String[] args) throws IOException, XmlPullParserException {
 		readArgs(args);
 
 		if (diskCachePath != null) {
+			File cacheDir = new File(diskCachePath);
+			if (!cacheDir.exists()) {
+				System.out.println("Cache directory not found. Creating " + cacheDir + " and generating cache");
+				if (!cacheDir.mkdirs()) {
+					System.err.println("Unable to create cache directory! Disk cache disabled");
+					diskCachePath = null;
+				}
+				generateCache = true;
+			} else if (!cacheDir.isDirectory()) {
+				System.err.println("The --cache parameter must specify a directory. Disk cache disabled.");
+				diskCachePath = null;
+			}
 			verifier = new CacheVerifier(diskCachePath, filenames);
 			try {
-				System.out.println("Checking for an existing cache and verifying contents...");
+				if (!generateCache) {
+					System.out.println("Checking for an existing cache and verifying contents...");
+				}
 				if (verifier.validateCache()) {
 					System.out.println("A suitable cache was found. All data will be loaded from cache rather than the .osm file(s)");
 				} else if (filenames.isEmpty()) {
 					throw new IllegalArgumentException("No .osm files were supplied and the --cache parameter doesn't point at a valid cache");
-				} else {
+				} else if (!generateCache) {
 					System.out.println("No suitable cache was found. A new cache will be created to speed up the splitting stage");
 					generateCache = true;
 				}
@@ -181,11 +195,6 @@ public class Main {
 		}
 		mixed = config.getProperty("mixed", false);
 		diskCachePath = config.getProperty("cache");
-		if (diskCachePath != null && !(new File(diskCachePath).isDirectory())) {
-			System.err.println("The --cache parameter must specify an existing directory. Disk cache disabled.");
-			diskCachePath = null;
-		}
-
 		maxAreasPerPass = config.getProperty("max-areas", maxAreasPerPass);
 		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
 			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
@@ -265,6 +274,7 @@ public class Main {
 	/**
 	 * Second pass, we have the areas so parse the file(s) again and write out each element
 	 * to the file(s) that should contain it.
+	 *
 	 * @param areaList Area list determined on the first pass.
 	 */
 	private void writeAreas(List<Area> areas) throws IOException, XmlPullParserException {
@@ -307,7 +317,7 @@ public class Main {
 				processor = new CachingMapProcessor(diskCachePath, verifier, processor);
 			}
 			MapReader mapReader = processMap(processor, !generateCache && diskCachePath != null);
-			generateCache = false;  // Make sure the cache isn't generated more than once!
+			generateCache = false;	// Make sure the cache isn't generated more than once!
 			System.out.println("Wrote " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
 							Utils.format(mapReader.getWayCount()) + " ways, " +
 							Utils.format(mapReader.getRelationCount()) + " relations");
