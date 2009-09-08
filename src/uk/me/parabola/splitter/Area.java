@@ -24,6 +24,8 @@ package uk.me.parabola.splitter;
  */
 public class Area {
 
+	public static final Area EMPTY = new Area();
+
 	private int mapId;
 	private final int minLat;
 	private final int minLong;
@@ -50,6 +52,16 @@ public class Area {
 			this.maxLong = maxLong+1;
 		else
 			this.maxLong = maxLong;
+	}
+
+	/**
+	 * Creates an empty area.
+	 */
+	private Area() {
+		minLat = 0;
+		maxLat = 0;
+		minLong = 0;
+		maxLong = 0;
 	}
 
 	public void setMapId(int mapId) {

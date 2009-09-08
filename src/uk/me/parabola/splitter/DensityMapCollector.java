@@ -17,9 +17,6 @@ class DensityMapCollector implements MapCollector {
 			// If we don't receive any bounds we have to assume the whole planet
 			bounds = new Area(-0x400000, -0x800000, 0x400000, 0x800000);
 		}
-		else {
-			bounds = RoundingUtils.round(bounds, resolution);
-		}
 		densityMap = new DensityMap(bounds, resolution);
 	}
 
@@ -72,10 +69,12 @@ class DensityMapCollector implements MapCollector {
 	@Override
 	public void endMap() {}
 
+	@Override
 	public Area getExactArea() {
 		return details.getBounds();
 	}
 
+	@Override
 	public SplittableArea getRoundedArea(int resolution) {
 		Area bounds = RoundingUtils.round(details.getBounds(), resolution);
 		return new SplittableDensityArea(densityMap.subset(bounds));

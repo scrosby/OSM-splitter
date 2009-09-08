@@ -53,12 +53,17 @@ public class RoundingUtils {
 		int alignment = 1 << shift;
 		int doubleAlignment = alignment << 1;
 
-		int roundedMinLat = roundDown(b.getMinLat(), shift);
-		int roundedMaxLat = roundUp(b.getMaxLat(), shift);
+		// Avoid pathological behaviour near the poles by discarding anything
+		// greater than +/-85 degrees latitude.
+		int minLat = Math.max(b.getMinLat(), Utils.toMapUnit(-85.0d));
+		int maxLat = Math.min(b.getMaxLat(), Utils.toMapUnit(85.0d));
+
+		int roundedMinLat = roundDown(minLat, shift);
+		int roundedMaxLat = roundUp(maxLat, shift);
 		if ((roundedMinLat & alignment) != (roundedMaxLat & alignment)) {
 			// The new height isn't a multiple of twice the alignment. Fix it by pushing
 			// the tile edge that moved the least out by another 'alignment' units.
-			if (b.getMinLat() - roundedMinLat < b.getMaxLat() - roundedMaxLat) {
+			if (minLat - roundedMinLat < maxLat - roundedMaxLat) {
 				roundedMinLat -= alignment;
 			} else {
 				roundedMaxLat += alignment;

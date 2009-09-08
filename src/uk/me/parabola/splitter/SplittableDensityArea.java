@@ -24,7 +24,7 @@ public class SplittableDensityArea implements SplittableArea {
 
 	@Override
 	public List<Area> split(int maxNodes) {
-		if (densities == null)
+		if (densities == null || densities.getNodeCount() == 0)
 			return Collections.emptyList();
 
 		Area bounds = densities.getBounds();

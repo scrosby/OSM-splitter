@@ -55,7 +55,7 @@ public class SplittableNodeArea implements SplittableArea {
 		coords = null;
 	}
 
-	public void add(int co) {
+	private void add(int co) {
 		coords.add(co);
 	}
 
@@ -76,7 +76,7 @@ public class SplittableNodeArea implements SplittableArea {
 	 */
 	@Override
 	public List<Area> split(int maxNodes) {
-		if (coords == null)
+		if (coords == null || coords.size() == 0)
 			return Collections.emptyList();
 
 		if (coords.size() < maxNodes) {

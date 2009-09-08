@@ -9,9 +9,9 @@ package uk.me.parabola.splitter;
  * @author Chris Miller
  */
 public class DensityMap {
-	private final int width, height, shift, shiftedUnit;
+	private final int width, height, shift;
 	private final int[][] nodeMap;
-	private final Area bounds;
+	private Area bounds;
 	private int totalNodeCount;
 
 	/**
@@ -23,15 +23,9 @@ public class DensityMap {
 		assert resolution >=1 && resolution <= 24;
 		shift = 24 - resolution;
 
-		int minLat = RoundingUtils.roundDown(area.getMinLat(), shift);
-		int minLon = RoundingUtils.roundDown(area.getMinLong(), shift);
-		int maxLat = RoundingUtils.roundUp(area.getMaxLat(), shift);
-		int maxLon = RoundingUtils.roundUp(area.getMaxLong(), shift);
-		bounds = new Area(minLat, minLon, maxLat, maxLon);
-
-		shiftedUnit = 1 << shift;
-		height = (maxLat - minLat) >> shift;
-		width = (maxLon - minLon) >> shift;
+		bounds = RoundingUtils.round(area, resolution);
+		height = bounds.getHeight() >> shift;
+		width = bounds.getWidth() >> shift;
 		nodeMap = new int[width][];
 	}
 
@@ -54,15 +48,12 @@ public class DensityMap {
 	public int addNode(int lat, int lon) {
 		if (!bounds.contains(lat, lon))
 			return 0;
-		totalNodeCount++;
-		lat -= bounds.getMinLat();
-		lon -= bounds.getMinLong();
-		int x = lon >>> shift;
-		int y = lat >>> shift;
 
-		// Any nodes that are right on the limit need to be pulled back to fit in the last array element
+		totalNodeCount++;
+		int x = lonToX(lon);
 		if (x == width)
 			x--;
+		int y = latToY(lat);
 		if (y == height)
 			y--;
 
@@ -87,21 +78,32 @@ public class DensityMap {
 
 		// If the area doesn't intersect with the density map, return an empty map
 		if (minLat > maxLat || minLon > maxLon) {
-			return new DensityMap(new Area(0, 0, 0, 0), 24 - shift);
+			return new DensityMap(Area.EMPTY, 24 - shift);
 		}
 
-		DensityMap result = new DensityMap(new Area(minLat, minLon, maxLat, maxLon), 24 - shift);
+		subset = trim(new Area(minLat, minLon, maxLat, maxLon));
 
-		int startX = (minLon - bounds.getMinLong()) >> shift;
-		int startY = (minLat - bounds.getMinLat()) >> shift;
-		int maxX = (maxLon - minLon) >> shift;
-		int maxY = (maxLat - minLat) >> shift;
+		// If there's nothing in the area return an empty map
+		if (subset.getWidth() == 0 || subset.getHeight() == 0) {
+			return new DensityMap(Area.EMPTY, 24 - shift);
+		}
+
+		DensityMap result = new DensityMap(subset, 24 - shift);
+
+		int startX = lonToX(subset.getMinLong());
+		int startY = latToY(subset.getMinLat());
+		int maxX = subset.getWidth() >> shift;
+		int maxY = subset.getHeight() >> shift;
 		for (int x = 0; x < maxX; x++) {
 			if (startY == 0 && maxY == height) {
 				result.nodeMap[x] = nodeMap[startX + x];
 			} else if (nodeMap[startX + x] != null) {
 				result.nodeMap[x] = new int[maxY];
-				System.arraycopy(nodeMap[startX + x], startY, result.nodeMap[x], 0, maxY);
+				try {
+					System.arraycopy(nodeMap[startX + x], startY, result.nodeMap[x], 0, maxY);
+				} catch (ArrayIndexOutOfBoundsException e) {
+					System.out.println("subSet() died at " + startX + ',' + startY + "  " + maxX + ',' + maxY + "  " + x);
+				}
 			}
 			for (int y = 0; y < maxY; y++) {
 				if (result.nodeMap[x] != null)
@@ -109,5 +111,87 @@ public class DensityMap {
 			}
 		}
 		return result;
+	}
+
+	/**
+	 * Sets the trimmed bounds based on any empty edges around the density map
+	 */
+	private Area trim(Area area) {
+
+		int minX = lonToX(area.getMinLong());
+		int maxX = lonToX(area.getMaxLong());
+		int minY = latToY(area.getMinLat());
+		int maxY = latToY(area.getMaxLat());
+
+		while (minX < maxX && (nodeMap[minX] == null || isEmptyX(minX, minY, maxY))) {
+			minX++;
+		}
+		if (minX == maxX) {
+			return Area.EMPTY;
+		}
+
+		while (nodeMap[maxX - 1] == null || isEmptyX(maxX - 1, minY, maxY)) {
+			maxX--;
+		}
+
+		while (minY < maxY && isEmptyY(minY, minX, maxX)) {
+			minY++;
+		}
+		if (minY == maxY) {
+			return Area.EMPTY;
+		}
+
+		while (isEmptyY(maxY - 1, minX, maxX)) {
+			maxY--;
+		}
+
+		Area trimmedArea = new Area(yToLat(minY), xToLon(minX), yToLat(maxY), xToLon(maxX));
+		Area rounded = RoundingUtils.round(trimmedArea, 24 - shift);
+
+		// Make sure the rounding hasn't pushed the area outside its original boundaries
+		int latAdjust = Math.max(0, rounded.getMaxLat() - area.getMaxLat());
+		int lonAdjust = Math.max(0, rounded.getMaxLong() - area.getMaxLong());
+		if (latAdjust > 0 || lonAdjust > 0) {
+			rounded = new Area(rounded.getMinLat() - latAdjust,
+							rounded.getMinLong() - lonAdjust,
+							rounded.getMaxLat() - latAdjust,
+							rounded.getMaxLong() - lonAdjust);
+		}
+		return rounded;
+	}
+
+	private boolean isEmptyX(int x, int start, int end) {
+		int[] array = nodeMap[x];
+		if (array != null) {
+			for (int y = start; y < end; y++) {
+				if (array[y] != 0)
+					return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean isEmptyY(int y, int start, int end) {
+		for (int x = start; x < end; x++) {
+			if (nodeMap[x] != null && nodeMap[x][y] != 0)
+				return false;
+		}
+		return true;
+	}
+
+	private int yToLat(int y) {
+		return (y << shift) + bounds.getMinLat();
+	}
+
+	private int xToLon(int x) {
+		return (x << shift) + bounds.getMinLong();
+	}
+
+	private int latToY(int lat) {
+		return lat - bounds.getMinLat() >>> shift;
+	}
+
+	private int lonToX(int lon) {
+		return lon - bounds.getMinLong() >>> shift;
 	}
 }
