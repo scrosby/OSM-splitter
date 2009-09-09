@@ -137,8 +137,8 @@ public class Convert {
 	 */
 	public static double parseDouble(String cs) throws NumberFormatException
 	{
+		int end = Math.min(cs.length(), 19);  // No point trying to handle more digits than a double precision number can deal with
 		int i = 0;
-		int end = cs.length();
 		char c = cs.charAt(i);
 
 		boolean isNegative = (c == '-');
