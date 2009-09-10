@@ -105,12 +105,18 @@ public class OSMWriter {
 		writeString("'>\n");
 		List<Relation.Member> memlist = rel.getMembers();
 		for (Relation.Member m : memlist) {
+			if (m.getType() == null || m.getRef() == 0) {
+				System.err.println("Invalid relation member found in relation " + rel.getId() + ": member type=" + m.getType() + ", ref=" + m.getRef() + ", role=" + m.getRole() + ". Ignoring this member");
+				continue;
+			}
 			writeString("<member type='");
 			writeString(m.getType());
 			writeString("' ref='");
 			writeInt(m.getRef());
 			writeString("' role='");
-			writeString(m.getRole());
+			if (m.getRole() != null) {
+				writeString(m.getRole());
+			}
 			writeString("'/>\n");
 		}
 		if (rel.hasTags())
