@@ -23,6 +23,8 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.text.NumberFormat;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.apache.tools.bzip2.CBZip2InputStream;
 
@@ -77,11 +79,11 @@ public class Utils {
 	/**
 	 * Open a file and apply filters necessary to reading it such as decompression.
 	 *
-	 * @param name The file to open.
+	 * @param name The file to open. gz, zip, bz2 are supported.
 	 * @return A stream that will read the file, positioned at the beginning.
 	 * @throws IOException If the file cannot be opened for any reason.
 	 */
-	static Reader openFile(String name) throws IOException {
+	public static Reader openFile(String name) throws IOException {
 		InputStream is = new FileInputStream(name);
 		if (name.endsWith(".gz")) {
 			try {
@@ -89,12 +91,24 @@ public class Utils {
 			} catch (IOException e) {
 				throw new IOException( "Could not read " + name + " as a gz compressed file", e);
 			}
-		}
-		if (name.endsWith(".bz2")) {
+		} else if (name.endsWith(".bz2")) {
 			try {
 				is.read(); is.read(); is = new CBZip2InputStream(is);
 			} catch (IOException e) {
 				throw new IOException( "Could not read " + name + " as a bz2 compressed file", e);
+			}
+		} else if (name.endsWith(".zip")) {
+			ZipInputStream zis = new ZipInputStream(is);
+			ZipEntry entry;
+			while ((entry = zis.getNextEntry()) != null) {
+				if (entry.getName().startsWith(name.substring(0, name.length() - 4))) {
+					is = zis;
+					break;
+				}
+			}
+			if (is != zis) {
+				zis.close();
+				throw new IOException("Unable to find a file inside " + name + " that starts with " + name.substring(0, name.length() - 4));
 			}
 		}
 		return new InputStreamReader(is, Charset.forName("UTF-8"));
