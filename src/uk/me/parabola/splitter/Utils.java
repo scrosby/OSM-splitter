@@ -15,6 +15,7 @@
  */
 package uk.me.parabola.splitter;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -99,6 +100,7 @@ public class Utils {
 			}
 		} else if (name.endsWith(".zip")) {
 			ZipInputStream zis = new ZipInputStream(is);
+			name = new File(name).getName();  // Strip off any path
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (entry.getName().startsWith(name.substring(0, name.length() - 4))) {
