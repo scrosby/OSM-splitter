@@ -27,6 +27,7 @@ public class Area {
 	public static final Area EMPTY = new Area();
 
 	private int mapId;
+	private String name;
 	private final int minLat;
 	private final int minLong;
 	private final int maxLat;
@@ -70,6 +71,14 @@ public class Area {
 
 	public int getMapId() {
 		return mapId;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public int getMinLat() {

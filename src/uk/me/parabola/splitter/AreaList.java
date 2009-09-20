@@ -119,29 +119,28 @@ public class AreaList {
 				double north = Utils.toDegrees(area.getMaxLat());
 				double east = Utils.toDegrees(area.getMaxLong());
 
+				String name = area.getName() == null ? String.valueOf(area.getMapId()) : area.getName();
 				pw.format(Locale.ROOT,
 								  "  <Placemark>\n" +
 									"    <name>%1$d</name>\n" +
 									"    <styleUrl>#transWhitePoly</styleUrl>\n" +
 									"      <description>\n" +
-									"        <![CDATA[\n" +
-									"          Splitter tile for mkgmap\n" +
-									"          ]]>\n" +
+									"        <![CDATA[%2$s]]>\n" +
 									"      </description>\n" +
 									"    <Polygon>\n" +
 									"      <outerBoundaryIs>\n" +
 									"        <LinearRing>\n" +
 									"          <coordinates>\n" +
-									"            %3$f,%2$f\n" +
-									"            %3$f,%4$f\n" +
-									"            %5$f,%4$f\n" +
-									"            %5$f,%2$f\n" +
-									"            %3$f,%2$f\n" +
+									"            %4$f,%3$f\n" +
+									"            %4$f,%5$f\n" +
+									"            %6$f,%5$f\n" +
+									"            %6$f,%3$f\n" +
+									"            %4$f,%3$f\n" +
 									"          </coordinates>\n" +
 									"        </LinearRing>\n" +
 									"      </outerBoundaryIs>\n" +
 									"    </Polygon>\n" +
-									"  </Placemark>\n", area.getMapId(), south, west, north, east);
+									"  </Placemark>\n", area.getMapId(), name, south, west, north, east);
 			}
 			pw.print("</Document>\n</kml>");
 		} catch (IOException e) {
