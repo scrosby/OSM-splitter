@@ -21,14 +21,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.Set;
 
+import uk.me.parabola.splitter.args.ParamParser;
+import uk.me.parabola.splitter.args.SplitterParams;
 import uk.me.parabola.splitter.disk.CacheVerifier;
+import uk.me.parabola.splitter.geo.City;
+import uk.me.parabola.splitter.geo.CityFinder;
+import uk.me.parabola.splitter.geo.CityLoader;
+import uk.me.parabola.splitter.geo.DefaultCityFinder;
+import uk.me.parabola.splitter.geo.DummyCityFinder;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -45,7 +50,7 @@ public class Main {
 	// compress an area ID into 8 bits to save memory (and 0 is reserved)
 	private int maxAreasPerPass = 255;
 
-	private List<String> filenames = new ArrayList<String>();
+	private List<String> filenames;
 
 	// The description to write into the template.args file.
 	private String description;
@@ -78,19 +83,27 @@ public class Main {
 	private boolean generateCache;
 	// Used to verify whether an existing cache is valid or not.
 	private CacheVerifier verifier;
+	// A GeoNames file to use for naming the tiles.
+	private String geoNamesFile;
 
-	private boolean densityMap = true;
+	private boolean densityMap;
 
 	private String kmlOutputFile;
 
-	public static void main(String[] args) {
-		Main m = new Main();
+	private SplitterParams params;
 
+	public static void main(String[] args) {
+
+		Main m = new Main();
+		m.start(args);
+	}
+
+	private void start(String[] args) {
+		readArgs(args);
 		long start = System.currentTimeMillis();
 		System.out.println("Time started: " + new Date());
-
 		try {
-			m.split(args);
+			split(args);
 		} catch (IOException e) {
 			System.err.println("Error opening or reading file " + e);
 			e.printStackTrace();
@@ -98,14 +111,11 @@ public class Main {
 			System.err.println("Error parsing xml from file " + e);
 			e.printStackTrace();
 		}
-
 		System.out.println("Time finished: " + new Date());
-		System.out.println("Total time taken: " + (System.currentTimeMillis() - start) / 1000 + "s");
+		System.out.println("Total time taken: " + (System.currentTimeMillis() - start) / 1000 + 's');
 	}
 
 	private void split(String[] args) throws IOException, XmlPullParserException {
-		readArgs(args);
-
 		if (diskCachePath != null) {
 			File cacheDir = new File(diskCachePath);
 			if (!cacheDir.exists()) {
@@ -146,7 +156,21 @@ public class Main {
 			System.out.println(" - area boundaries are aligned to 0x" + Integer.toHexString(alignment) + " map units");
 			System.out.println(" - areas are multiples of 0x" + Integer.toHexString(alignment * 2) + " map units wide and high");
 			areaList = calculateAreas();
+			for (Area area : areaList.getAreas()) {
+				area.setMapId(mapId++);
+			}
+			areaList.write("areas.list");
 		}
+
+		nameAreas();
+		System.out.println(areaList.getAreas().size() + " areas:");
+		for (Area area : areaList.getAreas()) {
+			System.out.print("Area " + area.getMapId() + " covers " + area.toHexString());
+			if (area.getName() != null)
+				System.out.print(' ' + area.getName());
+			System.out.println();
+		}
+
 
 		if (kmlOutputFile != null) {
 			System.out.println("Writing KML file to " + kmlOutputFile);
@@ -161,50 +185,53 @@ public class Main {
 	 * Deal with the command line arguments.
 	 */
 	private void readArgs(String[] args) {
-		Properties props = new Properties();
+		ParamParser parser = new ParamParser();
+		params = parser.parse(SplitterParams.class, args);
 
-		for (String arg : args) {
-			if (arg.startsWith("--")) {
-				Pattern pattern = Pattern.compile("--(.*)=(.*)");
-				Matcher m = pattern.matcher(arg);
-				if (m.find()) {
-					String key = m.group(1);
-					String val = m.group(2);
-					System.out.printf("%s = %s\n", key, val);
-					props.setProperty(key, val);
-				}
-			} else {
-				filenames.add(arg);
+		if (!parser.getErrors().isEmpty()) {
+			System.out.println();
+			System.out.println("Invalid parameter(s):");
+			for (String error : parser.getErrors()) {
+				System.out.println("  " + error);
 			}
+			System.out.println();
+			parser.displayUsage();
+			System.exit(-1);
 		}
 
-		EnhancedProperties config = new EnhancedProperties(props);
+		for (Map.Entry<String, Object> entry : parser.getConvertedParams().entrySet()) {
+			String name = entry.getKey();
+			Object value = entry.getValue();
+			System.out.println(name + '=' + (value == null ? "" : value));
+		}
 
-		mapId = config.getProperty("mapid", config.getProperty("mapname", mapId));
-		overlapAmount = config.getProperty("overlap", overlapAmount);
-		maxNodes = config.getProperty("max-nodes", maxNodes);
-		description = config.getProperty("description");
-		resolution = config.getProperty("resolution", resolution);
+		mapId = params.getMapid();
+		overlapAmount = params.getOverlap();
+		maxNodes = params.getMaxNodes();
+		description = params.getDescription();
+		geoNamesFile = params.getGeonamesFile();
+		resolution = params.getResolution();
 		if (resolution < 1 || resolution > 24) {
 			System.err.println("The --resolution parameter must be a value between 1 and 24. Resetting to 13.");
 			resolution = 13;
 		}
-		if (config.getProperty("legacy-mode", false)) {
-			System.out.println("WARNING: This option is considered deprecated and will be removed in a future build. Specifying --legacy-split will cause the first stage of the split to take much more memory!");
-			densityMap = false;
-		}
-		mixed = config.getProperty("mixed", false);
-		diskCachePath = config.getProperty("cache");
-		maxAreasPerPass = config.getProperty("max-areas", maxAreasPerPass);
+		mixed = params.isMixed();
+		diskCachePath = params.getCache();
+		maxAreasPerPass = params.getMaxAreas();
 		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
 			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
 			maxAreasPerPass = 255;
 		}
+		kmlOutputFile = params.getWriteKml();
+		densityMap = !params.isLegacyMode();
+		if (!densityMap) {
+			System.out.println("WARNING: Specifying --legacy-split will cause the first stage of the split to take much more memory! This option is considered deprecated and will be removed in a future build.");
+		}
 
-		kmlOutputFile = config.getProperty("write-kml");
+		filenames = parser.getAdditionalParams();
 
-		if (config.containsKey("split-file")) {
-			String splitFile = config.getProperty("split-file");
+		String splitFile = params.getSplitFile();
+		if (splitFile != null) {
 			try {
 				areaList = new AreaList();
 				areaList.read(splitFile);
@@ -258,17 +285,33 @@ public class Main {
 		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
 
 		List<Area> areas = splittableArea.split(maxNodes);
-		areaList = new AreaList(areas);
+		return new AreaList(areas);
+	}
 
-		System.out.println(areas.size() + " areas generated:");
-		for (Area area : areas) {
-			System.out.println("Area " + mapId + " covers " + area.toHexString());
-			area.setMapId(mapId++);
+	private void nameAreas() throws IOException {
+		CityFinder cityFinder;
+		if (geoNamesFile != null) {
+			CityLoader cityLoader = new CityLoader(true);
+			List<City> cities = cityLoader.load(geoNamesFile);
+			cityFinder = new DefaultCityFinder(cities);
+		} else {
+			cityFinder = new DummyCityFinder();
 		}
 
-		areaList.write("areas.list");
-
-		return areaList;
+		for (Area area : areaList.getAreas()) {
+			// Decide what to call the area
+			Set<City> found = cityFinder.findCities(area);
+			City bestMatch = null;
+			for (City city : found) {
+				if (bestMatch == null || city.getPopulation() > bestMatch.getPopulation()) {
+					bestMatch = city;
+				}
+			}
+			if (bestMatch != null)
+				area.setName(bestMatch.getCountryCode() + '-' + bestMatch.getName());
+			else
+				area.setName(description);
+		}
 	}
 
 	/**
@@ -381,10 +424,10 @@ public class Main {
 		for (Area a : areas) {
 			w.println();
 			w.format("mapname: %d\n", a.getMapId());
-			if (description == null)
+			if (a.getName() == null)
 				w.println("# description: OSM Map");
 			else
-				w.println("description: " + description);
+				w.println("description: " + a.getName());
 			w.format("input-file: %d.osm.gz\n", a.getMapId());
 		}
 
