@@ -12,6 +12,7 @@
  */
 package uk.me.parabola.splitter;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -91,7 +92,8 @@ public class Utils {
 			}
 		} else if (name.endsWith(".bz2")) {
 			try {
-				is.read(); is.read(); is = new CBZip2InputStream(is);
+				is.read(); is.read();
+				is = new CBZip2InputStream(new BufferedInputStream(is, 16384));
 			} catch (IOException e) {
 				throw new IOException( "Could not read " + name + " as a bz2 compressed file", e);
 			}

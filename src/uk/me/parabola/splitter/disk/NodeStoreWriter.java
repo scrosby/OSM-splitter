@@ -12,6 +12,7 @@
  */
 package uk.me.parabola.splitter.disk;
 
+import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -22,7 +23,7 @@ import java.io.OutputStream;
 public class NodeStoreWriter extends AbstractStoreWriter {
 
 	public NodeStoreWriter(String filename) throws IOException {
-		this(new FileOutputStream(filename), new KeyLookupWriter(filename + ".keys"));
+		this(new BufferedOutputStream(new FileOutputStream(filename), 16384), new KeyLookupWriter(filename + ".keys"));
 	}
 
 	public NodeStoreWriter(OutputStream out, KeyLookupWriter keys) {

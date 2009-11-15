@@ -12,6 +12,7 @@
  */
 package uk.me.parabola.splitter.disk;
 
+import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -23,7 +24,7 @@ public class RelationStoreWriter extends AbstractStoreWriter {
 	private final KeyLookupWriter roles;
 
 	public RelationStoreWriter(String filename) throws IOException {
-		this(new FileOutputStream(filename), new KeyLookupWriter(filename + ".keys"), new KeyLookupWriter(filename + ".roles"));
+		this(new BufferedOutputStream(new FileOutputStream(filename), 16384), new KeyLookupWriter(filename + ".keys"), new KeyLookupWriter(filename + ".roles"));
 	}
 
 	public RelationStoreWriter(OutputStream out, KeyLookupWriter keys, KeyLookupWriter roles) {
