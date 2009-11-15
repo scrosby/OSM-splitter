@@ -83,7 +83,7 @@ public class Utils {
 	 * @throws IOException If the file cannot be opened for any reason.
 	 */
 	public static Reader openFile(String name) throws IOException {
-		InputStream is = new FileInputStream(name);
+		InputStream is = new BufferedInputStream(new FileInputStream(name), 8192);
 		if (name.endsWith(".gz")) {
 			try {
 				is = new GZIPInputStream(is);
@@ -93,7 +93,7 @@ public class Utils {
 		} else if (name.endsWith(".bz2")) {
 			try {
 				is.read(); is.read();
-				is = new CBZip2InputStream(new BufferedInputStream(is, 16384));
+				is = new CBZip2InputStream(is);
 			} catch (IOException e) {
 				throw new IOException( "Could not read " + name + " as a bz2 compressed file", e);
 			}
