@@ -20,6 +20,7 @@ class DensityMapCollector implements MapCollector {
 
 	private final DensityMap densityMap;
 	private final MapDetails details = new MapDetails();
+	private Area bounds;
 
 	DensityMapCollector(int resolution) {
 		this(null, resolution);
@@ -36,6 +37,11 @@ class DensityMapCollector implements MapCollector {
 	@Override
 	public boolean isStartNodeOnly() {
 		return true;
+	}
+
+	@Override
+	public void boundTag(Area bounds) {
+		this.bounds = bounds;
 	}
 
 	@Override
@@ -84,11 +90,15 @@ class DensityMapCollector implements MapCollector {
 
 	@Override
 	public Area getExactArea() {
-		return details.getBounds();
+		if (bounds != null) {
+			return bounds;
+		} else {
+			return details.getBounds();
+		}
 	}
 
 	@Override
 	public SplittableArea getRoundedArea(int resolution) {
-		Area bounds = RoundingUtils.round(details.getBounds(), resolution);
+		Area bounds = RoundingUtils.round(getExactArea(), resolution);
 		return new SplittableDensityArea(densityMap.subset(bounds));
 	}}

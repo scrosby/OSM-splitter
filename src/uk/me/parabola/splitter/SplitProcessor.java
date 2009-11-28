@@ -48,6 +48,10 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	@Override
+	public void boundTag(Area bounds) {
+	}
+
+	@Override
 	public void startNode(int id, double lat, double lon) {
 		currentNode.set(id, lat, lon);
 	}

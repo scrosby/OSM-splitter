@@ -97,10 +97,13 @@ public class Main {
 
 	private void start(String[] args) {
 		readArgs(args);
+		if (params.getStatusFreq() > 0) {
+			JVMHealthMonitor.start(params.getStatusFreq());
+		}
 		long start = System.currentTimeMillis();
 		System.out.println("Time started: " + new Date());
 		try {
-			split(args);
+			split();
 		} catch (IOException e) {
 			System.err.println("Error opening or reading file " + e);
 			e.printStackTrace();
@@ -112,11 +115,11 @@ public class Main {
 		System.out.println("Total time taken: " + (System.currentTimeMillis() - start) / 1000 + 's');
 	}
 
-	private void split(String[] args) throws IOException, XmlPullParserException {
+	private void split() throws IOException, XmlPullParserException {
 		if (diskCachePath != null) {
 			File cacheDir = new File(diskCachePath);
 			if (!cacheDir.exists()) {
-				System.out.println("Cache directory not found. Creating " + cacheDir + " and generating cache");
+				System.out.println("Cache directory not found. Creating directory '" + cacheDir + "' and generating cache");
 				if (!cacheDir.mkdirs()) {
 					System.err.println("Unable to create cache directory! Disk cache disabled");
 					diskCachePath = null;
@@ -278,7 +281,7 @@ public class Main {
 		Area exactArea = nodes.getExactArea();
 		SplittableArea splittableArea = nodes.getRoundedArea(resolution);
 		System.out.println("Exact map coverage is " + exactArea);
-		System.out.println("Rounded map coverage is " + splittableArea.getBounds());
+		System.out.println("Trimmed and rounded map coverage is " + splittableArea.getBounds());
 		System.out.println("Splitting nodes into areas containing a maximum of " + Utils.format(maxNodes) + " nodes each...");
 
 		List<Area> areas = splittableArea.split(maxNodes);
@@ -370,8 +373,7 @@ public class Main {
 			loader.load();
 			return loader;
 		} else {
-			OSMParser parser = new OSMParser(processor);
-			parser.setMixed(mixed);
+			OSMParser parser = new OSMParser(processor, mixed);
 			processOsmFiles(parser);
 			return parser;
 		}

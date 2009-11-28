@@ -20,10 +20,16 @@ class NodeCollector implements MapCollector {
 
 	private SplitIntList coords = new SplitIntList();
 	private final MapDetails details = new MapDetails();
+	private Area bounds;
 
 	@Override
 	public boolean isStartNodeOnly() {
 		return true;
+	}
+
+	@Override
+	public void boundTag(Area bounds) {
+		this.bounds = bounds;
 	}
 
 	@Override
@@ -77,12 +83,16 @@ class NodeCollector implements MapCollector {
 
 	@Override
 	public Area getExactArea() {
-		return details.getBounds();
+		if (bounds != null) {
+			return bounds;
+		} else {
+			return details.getBounds();
+		}
 	}
 
 	@Override
 	public SplittableArea getRoundedArea(int resolution) {
-		Area bounds = RoundingUtils.round(details.getBounds(), resolution);
+		Area bounds = RoundingUtils.round(getExactArea(), resolution);
 		SplittableArea result = new SplittableNodeArea(bounds, coords, resolution);
 		coords = null;
 		return result;

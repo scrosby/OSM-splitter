@@ -26,6 +26,12 @@ public interface MapProcessor {
 	boolean isStartNodeOnly();
 
 	/**
+	 * Called when the bound tag is encountered.
+	 * @param bounds the area covered by the map.
+	 */
+	void boundTag(Area bounds);
+
+	/**
 	 * Called when a node is encountered.
 	 * @param id the node's ID.
 	 * @param lat the node's latitude.

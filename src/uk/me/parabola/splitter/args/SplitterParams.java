@@ -57,4 +57,7 @@ public interface SplitterParams {
 
 	@Option(description = "Enables the old area subdivision algorithm in case of compatibility problems. This requires lots of memory! Deprecated, will be removed in a future version.")
 	boolean isLegacyMode();
+
+	@Option(defaultValue = "120", description = "Displays the amount of memory used by the JVM every --status-freq seconds. Set =0 to disable.")
+	int getStatusFreq();
 }

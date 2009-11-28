@@ -32,8 +32,8 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	private final MapProcessor processor;
 
 	// There are mixed nodes and ways in the file
-	private boolean mixed;
-	private boolean startNodeOnly;
+	private final boolean mixed;
+	private final boolean startNodeOnly;
 
 	private State state = State.None;
 	private long nodeCount;
@@ -41,13 +41,11 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	private long relationCount;
 	private int minNodeId = Integer.MAX_VALUE;
 	private int maxNodeId = Integer.MIN_VALUE;
+	private boolean processedBounds;
 
-	OSMParser(MapProcessor processor) throws XmlPullParserException {
+	OSMParser(MapProcessor processor, boolean mixed) throws XmlPullParserException {
 		this.processor = processor;
 		this.startNodeOnly = processor.isStartNodeOnly();
-	}
-
-	public void setMixed(boolean mixed) {
 		this.mixed = mixed;
 	}
 
@@ -100,6 +98,9 @@ class OSMParser extends AbstractXppParser implements MapReader {
 			} else if (name.equals("relation")) {
 				if (!startNodeOnly)
 					startRelation();
+			} else if (!processedBounds && name.equals("bounds") || name.equals("bound")) {
+				processBounds();
+				processedBounds = true;
 			}
 			break;
 		case Node:
@@ -125,7 +126,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 
 		if (idStr == null || latStr == null || lonStr == null) {
 			// This should never happen - bad/corrupt .osm file?
-			System.out.println("Node encountered with missing data. Bad/corrupt osm file? id=" + idStr + ", lat=" + latStr + ", lon=" + lonStr + ". Ignoring this node");
+			System.err.println("Node encountered with missing data. Bad/corrupt osm file? id=" + idStr + ", lat=" + latStr + ", lon=" + lonStr + ". Ignoring this node");
 			return;
 		}
 
@@ -181,6 +182,52 @@ class OSMParser extends AbstractXppParser implements MapReader {
 				processor.relationWay(id, role);
 			}
 		}
+	}
+
+	private static final String[] BOUND_ATTRS = {"minlat", "minlon", "maxlat", "maxlon"};
+
+	private void processBounds() {
+		String[] split;
+		String boxStr = getAttr("box");
+		if (boxStr == null) {
+			split = new String[4];
+			for (int i = 0; i < BOUND_ATTRS.length; i++) {
+				split[i] = getAttr(BOUND_ATTRS[i]);
+				if (split[i] == null) {
+					System.err.println("A <bounds/> tag was found but it has no 'box' attribute and no '" + BOUND_ATTRS[i] + "' attribute. Ignoring bounds");
+					return;
+				}
+			}
+		} else {
+			split = boxStr.split(",");
+			if (split.length != 4) {
+				System.err.println(
+								"A <bounds/> tag was found but its 'box' attribute contains an unexpected number of coordinates (expected 4, found " + split.length + "). Ignoring bounds");
+				return;
+			}
+		}
+		double[] coords = new double[4];
+		int[] mapUnits = new int[4];
+		for (int i = 0; i < 4; i++) {
+			try {
+				coords[i] = Double.parseDouble(split[i].trim());
+			} catch (NumberFormatException e) {
+				System.err.println("A <bounds/> tag was found but it contains unexpected data. Unable to parse '" + split[i] + "' as a double. Ignoring bounds");
+				return;
+			}
+			mapUnits[i] = Utils.toMapUnit(coords[i]);
+		}
+		Area bounds = new Area(mapUnits[0], mapUnits[1], mapUnits[2], mapUnits[3]);
+
+		if (bounds.getMinLong() > bounds.getMaxLong()) {
+			System.out.println("A <bounds/> tag was found but it crosses +/-180 the latitude line (western edge=" +
+							Utils.toDegrees(bounds.getMinLong()) + ", eastern=" + Utils.toDegrees(bounds.getMaxLong()) +
+							"). The splitter isn't currently able to deal with this, so the bounds are being ignored");
+			return;
+		}
+
+		processor.boundTag(bounds);
+		System.out.println("A <bounds/> tag was found. Area covered is " + bounds.toString());
 	}
 
 	/**

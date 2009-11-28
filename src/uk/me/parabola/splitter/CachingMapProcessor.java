@@ -57,6 +57,12 @@ public class CachingMapProcessor implements MapProcessor {
 	}
 
 	@Override
+	public void boundTag(Area bounds) {
+		// todo: write the bounds out to the cache
+		delegate.boundTag(bounds);
+	}
+
+	@Override
 	public void startNode(int id, double lat, double lon) {
 		currentNode = id;
 		try {
