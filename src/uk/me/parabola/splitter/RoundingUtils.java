@@ -91,7 +91,7 @@ public class RoundingUtils {
 		if ((roundedMinLon & alignment) != (roundedMaxLon & alignment)) {
 			// The new width isn't a multiple of twice the alignment. Fix it by pushing
 			// the tile edge that moved the least out by another 'alignment' units.
-			if (b.getMinLong() - roundedMinLon < b.getMaxLong() - roundedMaxLon) {
+			if (b.getMinLong() - roundedMinLon < roundedMaxLon - b.getMaxLong()) {
 				roundedMinLon -= alignment;
 			} else {
 				roundedMaxLon += alignment;
