@@ -26,11 +26,11 @@ public class KeyLookupWriter {
 	private final Map<CharSequence, Short> lookup = new HashMap<CharSequence, Short>(20);
 
 	public KeyLookupWriter(String keyFilename) throws IOException {
-		out = new LengthPrefixOutputStream(new FileOutputStream(keyFilename), 16384);
+		out = new LengthPrefixOutputStream(new FileOutputStream(keyFilename));
 	}
 
 	public KeyLookupWriter(OutputStream out) throws IOException {
-		this.out = new LengthPrefixOutputStream(out, 16384);
+		this.out = new LengthPrefixOutputStream(out);
 	}
 
 	public short set(CharSequence key) throws IOException {

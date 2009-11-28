@@ -13,6 +13,7 @@
 
 package uk.me.parabola.splitter.disk;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UTFDataFormatException;
@@ -37,7 +38,7 @@ public class LengthPrefixOutputStream extends OutputStream {
 	}
 
 	public LengthPrefixOutputStream(OutputStream out, int bufferSize) {
-		this.out = out;
+		this.out = new BufferedOutputStream(out, 8192);
 		buf = new byte[bufferSize];
 	}
 
