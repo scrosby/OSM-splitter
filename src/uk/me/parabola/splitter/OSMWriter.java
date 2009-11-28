@@ -123,12 +123,12 @@ public class OSMWriter {
 				continue;
 			}
 			writeString("<member type='");
-			writeString(m.getType());
+			writeAttribute(m.getType());
 			writeString("' ref='");
 			writeInt(m.getRef());
 			writeString("' role='");
 			if (m.getRole() != null) {
-				writeString(m.getRole());
+				writeAttribute(m.getRole());
 			}
 			writeString("'/>\n");
 		}
@@ -152,14 +152,19 @@ public class OSMWriter {
 	private void writeAttribute(String value) throws IOException {
 		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
-			if (c == '\'')
-				writeString("&apos;");
-			else if (c == '&') {
-				writeString("&amp;");
-			} else if (c == '<') {
-				writeString("&lt;");
-			} else
-				writeChar(c);
+			switch (c) {
+				case '\'':
+					writeString("&apos;");
+					break;
+				case '&':
+					writeString("&amp;");
+					break;
+				case '<':
+					writeString("&lt;");
+					break;
+				default:
+					writeChar(c);
+			}
 		}
 	}
 
