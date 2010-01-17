@@ -26,13 +26,15 @@ public class DensityMap {
 	private final int[][] nodeMap;
 	private Area bounds;
 	private int totalNodeCount;
+	private boolean trim;
 
 	/**
 	 * Creates a density map.
 	 * @param area the area that the density map covers.
 	 * @param resolution the resolution of the density map. This must be a value between 1 and 24.
 	 */
-	public DensityMap(Area area, int resolution) {
+	public DensityMap(Area area, boolean trim, int resolution) {
+		this.trim = trim;
 		assert resolution >=1 && resolution <= 24;
 		shift = 24 - resolution;
 
@@ -91,17 +93,20 @@ public class DensityMap {
 
 		// If the area doesn't intersect with the density map, return an empty map
 		if (minLat > maxLat || minLon > maxLon) {
-			return new DensityMap(Area.EMPTY, 24 - shift);
+			return new DensityMap(Area.EMPTY, trim, 24 - shift);
 		}
 
-		subset = trim(new Area(minLat, minLon, maxLat, maxLon));
+		subset = new Area(minLat, minLon, maxLat, maxLon);
+		if (trim) {
+			subset = trim(subset);
+		}
 
 		// If there's nothing in the area return an empty map
 		if (subset.getWidth() == 0 || subset.getHeight() == 0) {
-			return new DensityMap(Area.EMPTY, 24 - shift);
+			return new DensityMap(Area.EMPTY, trim, 24 - shift);
 		}
 
-		DensityMap result = new DensityMap(subset, 24 - shift);
+		DensityMap result = new DensityMap(subset, trim, 24 - shift);
 
 		int startX = lonToX(subset.getMinLong());
 		int startY = latToY(subset.getMinLat());

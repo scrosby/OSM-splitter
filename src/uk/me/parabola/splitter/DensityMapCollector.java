@@ -22,16 +22,16 @@ class DensityMapCollector implements MapCollector {
 	private final MapDetails details = new MapDetails();
 	private Area bounds;
 
-	DensityMapCollector(int resolution) {
-		this(null, resolution);
+	DensityMapCollector(boolean trim, int resolution) {
+		this(null, trim, resolution);
 	}
 
-	DensityMapCollector(Area bounds, int resolution) {
+	DensityMapCollector(Area bounds, boolean trim, int resolution) {
 		if (bounds == null) {
 			// If we don't receive any bounds we have to assume the whole planet
 			bounds = new Area(-0x400000, -0x800000, 0x400000, 0x800000);
 		}
-		densityMap = new DensityMap(bounds, resolution);
+		densityMap = new DensityMap(bounds, trim, resolution);
 	}
 
 	@Override

@@ -71,6 +71,9 @@ public class Main {
 	// same as the tile edges are.
 	private int resolution = 13;
 
+	// Whether or not to trim tiles of any empty space around their edges.
+	private boolean trim;
+
 	// Set if there is a previous area file given on the command line.
 	private AreaList areaList;
 	private boolean mixed;
@@ -211,6 +214,7 @@ public class Main {
 		description = params.getDescription();
 		geoNamesFile = params.getGeonamesFile();
 		resolution = params.getResolution();
+		trim = !params.isNoTrim();
 		if (resolution < 1 || resolution > 24) {
 			System.err.println("The --resolution parameter must be a value between 1 and 24. Resetting to 13.");
 			resolution = 13;
@@ -250,7 +254,7 @@ public class Main {
 	 */
 	private AreaList calculateAreas() throws IOException, XmlPullParserException {
 
-		MapCollector nodes = densityMap ? new DensityMapCollector(resolution) : new NodeCollector();
+		MapCollector nodes = densityMap ? new DensityMapCollector(trim, resolution) : new NodeCollector();
 		MapProcessor processor = nodes;
 		boolean loadFromCache = false;
 		if (diskCachePath == null) {

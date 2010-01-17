@@ -60,4 +60,7 @@ public interface SplitterParams {
 
 	@Option(defaultValue = "120", description = "Displays the amount of memory used by the JVM every --status-freq seconds. Set =0 to disable.")
 	int getStatusFreq();
+
+	@Option(description = "Don't trim empty space off the edges of tiles.")
+	boolean isNoTrim();
 }
