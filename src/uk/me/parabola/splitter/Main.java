@@ -13,7 +13,6 @@
 
 package uk.me.parabola.splitter;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -25,7 +24,6 @@ import java.util.Set;
 
 import uk.me.parabola.splitter.args.ParamParser;
 import uk.me.parabola.splitter.args.SplitterParams;
-import uk.me.parabola.splitter.disk.CacheVerifier;
 import uk.me.parabola.splitter.geo.City;
 import uk.me.parabola.splitter.geo.CityFinder;
 import uk.me.parabola.splitter.geo.CityLoader;
@@ -77,12 +75,6 @@ public class Main {
 	// Set if there is a previous area file given on the command line.
 	private AreaList areaList;
 	private boolean mixed;
-	// The path to the disk cache. If this is null, no cache will be generated or used.
-	private String diskCachePath;
-	// Whether or not a new cache needs to be generated.
-	private boolean generateCache;
-	// Used to verify whether an existing cache is valid or not.
-	private CacheVerifier verifier;
 	// A GeoNames file to use for naming the tiles.
 	private String geoNamesFile;
 
@@ -121,37 +113,7 @@ public class Main {
 	}
 
 	private void split() throws IOException, XmlPullParserException {
-		if (diskCachePath != null) {
-			File cacheDir = new File(diskCachePath);
-			if (!cacheDir.exists()) {
-				System.out.println("Cache directory not found. Creating directory '" + cacheDir + "' and generating cache");
-				if (!cacheDir.mkdirs()) {
-					System.err.println("Unable to create cache directory! Disk cache disabled");
-					diskCachePath = null;
-				}
-				generateCache = true;
-			} else if (!cacheDir.isDirectory()) {
-				System.err.println("The --cache parameter must specify a directory. Disk cache disabled.");
-				diskCachePath = null;
-			}
-			verifier = new CacheVerifier(diskCachePath, filenames);
-			try {
-				if (!generateCache) {
-					System.out.println("Checking for an existing cache and verifying contents...");
-				}
-				if (verifier.validateCache()) {
-					System.out.println("A suitable cache was found. All data will be loaded from cache rather than the .osm file(s)");
-				} else if (filenames.isEmpty()) {
-					throw new IllegalArgumentException("No .osm files were supplied and the --cache parameter doesn't point at a valid cache");
-				} else if (!generateCache) {
-					System.out.println("No suitable cache was found. A new cache will be created to speed up the splitting stage");
-					generateCache = true;
-				}
-			} catch (IOException e) {
-				System.err.println("Unable to verify cache content - regenerating cache. Reason: " + e.getMessage());
-				e.printStackTrace();
-			}
-		} else if (filenames.isEmpty()) {
+		if (filenames.isEmpty()) {
 			throw new IllegalArgumentException("No .osm files were supplied and no --cache parameter was specified to load data from");
 		}
 
@@ -222,7 +184,6 @@ public class Main {
 			resolution = 13;
 		}
 		mixed = params.isMixed();
-		diskCachePath = params.getCache();
 		maxAreasPerPass = params.getMaxAreas();
 		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
 			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
@@ -259,27 +220,12 @@ public class Main {
 
 		MapCollector nodes = densityMap ? new DensityMapCollector(trim, resolution) : new NodeCollector();
 		MapProcessor processor = nodes;
-		boolean loadFromCache = false;
-		if (diskCachePath == null) {
-			System.out.println("The input osm file(s) will be re-parsed during the split (slower) because no --cache parameter was specified");
-		} else {
-			if (generateCache) {
-				processor = new CachingMapProcessor(diskCachePath, verifier, processor);
-				generateCache = false;
-			} else {
-				loadFromCache = true;
-			}
-		}
-
-		MapReader mapReader = processMap(processor, loadFromCache);
+		MapReader mapReader = processMap(processor);
 		System.out.print("A total of " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
 						Utils.format(mapReader.getWayCount()) + " ways and " +
 						Utils.format(mapReader.getRelationCount()) + " relations were processed ");
-		if (loadFromCache) {
-			System.out.println("from the disk cache");
-		} else {
-			System.out.println("in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
-		}
+
+		System.out.println("in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
 		System.out.println("Min node ID = " + mapReader.getMinNodeId());
 		System.out.println("Max node ID = " + mapReader.getMaxNodeId());
 
@@ -352,38 +298,17 @@ public class Main {
 							areas.get(i * maxAreasPerPass + currentWriters.length - 1).getMapId() + ')');
 
 			MapProcessor processor = new SplitProcessor(currentWriters, maxThreads);
-			if (generateCache) {
-				if (passesRequired == 1) {
-					System.out.println("*********************************************************************");
-					System.out.println("* WARNING: No valid existing cache found but caching was requested. *");
-					System.out.println("*          A cache will be generated even though only one pass is   *");
-					System.out.println("*          required. This is likely to slow things down! You should *");
-					System.out.println("*          normally only do this if you plan to reuse the cache on  *");
-					System.out.println("*          additional runs of the splitter.                         *");
-					System.out.println("*********************************************************************");
-				} else {
-					System.out.println("No valid existing cache found. A cache will be generated on this pass");
-				}
-				processor = new CachingMapProcessor(diskCachePath, verifier, processor);
-			}
-			MapReader mapReader = processMap(processor, !generateCache && diskCachePath != null);
-			generateCache = false;	// Make sure the cache isn't generated more than once!
+			MapReader mapReader = processMap(processor);
 			System.out.println("Wrote " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
 							Utils.format(mapReader.getWayCount()) + " ways, " +
 							Utils.format(mapReader.getRelationCount()) + " relations");
 		}
 	}
 
-	private MapReader processMap(MapProcessor processor, boolean useCache) throws XmlPullParserException, IOException {
-		if (useCache) {
-			BinaryMapLoader loader = new BinaryMapLoader(diskCachePath, processor);
-			loader.load();
-			return loader;
-		} else {
+	private MapReader processMap(MapProcessor processor) throws XmlPullParserException, IOException {
 			OSMParser parser = new OSMParser(processor, mixed);
 			processOsmFiles(parser);
 			return parser;
-		}
 	}
 
 	private void processOsmFiles(OSMParser parser) throws IOException, XmlPullParserException {
