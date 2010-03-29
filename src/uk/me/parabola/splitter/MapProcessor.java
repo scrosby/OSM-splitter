@@ -26,7 +26,9 @@ public interface MapProcessor {
 	boolean isStartNodeOnly();
 
 	/**
-	 * Called when the bound tag is encountered.
+	 * Called when the bound tag is encountered. Note that it is possible
+	 * for this to be called multiple times, eg if there are multiple OSM
+	 * files provided as input.
 	 * @param bounds the area covered by the map.
 	 */
 	void boundTag(Area bounds);

@@ -41,7 +41,6 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	private long relationCount;
 	private int minNodeId = Integer.MAX_VALUE;
 	private int maxNodeId = Integer.MIN_VALUE;
-	private boolean processedBounds;
 
 	OSMParser(MapProcessor processor, boolean mixed) throws XmlPullParserException {
 		this.processor = processor;
@@ -98,9 +97,8 @@ class OSMParser extends AbstractXppParser implements MapReader {
 			} else if (name.equals("relation")) {
 				if (!startNodeOnly)
 					startRelation();
-			} else if (!processedBounds && name.equals("bounds") || name.equals("bound")) {
+			} else if (name.equals("bounds") || name.equals("bound")) {
 				processBounds();
-				processedBounds = true;
 			}
 			break;
 		case Node:

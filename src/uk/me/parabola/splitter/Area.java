@@ -40,13 +40,13 @@ public class Area {
 	public Area(int minLat, int minLong, int maxLat, int maxLong) {
 		this.minLat = minLat;
 		if (maxLat == minLat)
-			this.maxLat = minLat+1;
+			this.maxLat = minLat + 1;
 		else
 			this.maxLat = maxLat;
 
 		this.minLong = minLong;
 		if (minLong == maxLong)
-			this.maxLong = maxLong+1;
+			this.maxLong = maxLong + 1;
 		else
 			this.maxLong = maxLong;
 	}
@@ -125,4 +125,12 @@ public class Area {
 				&& lon <= maxLong;
 	}
 
+	public Area add(Area area) {
+		return new Area(
+						Math.min(minLat, area.minLat),
+						Math.min(minLong, area.minLong),
+						Math.max(maxLat, area.maxLat),
+						Math.max(maxLong, area.maxLong)
+		);
+	}
 }

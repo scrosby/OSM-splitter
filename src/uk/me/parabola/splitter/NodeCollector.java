@@ -29,7 +29,10 @@ class NodeCollector implements MapCollector {
 
 	@Override
 	public void boundTag(Area bounds) {
-		this.bounds = bounds;
+		if (this.bounds == null)
+			this.bounds = bounds;
+		else
+			this.bounds = this.bounds.add(bounds);
 	}
 
 	@Override
