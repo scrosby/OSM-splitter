@@ -16,6 +16,10 @@
  */
 package uk.me.parabola.splitter;
 
+import java.util.Arrays;
+
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
+
 /**
  * Maintains a list of int primitives.
  */
@@ -56,5 +60,10 @@ public class IntList {
 			data = new int[size * 3 / 2 + 1];
 			System.arraycopy(temp, 0, data, 0, size);
 		}
+	}
+
+	/** Get as a read-only array of integers */
+	int []asArray() {
+		return Arrays.copyOf(data,size);
 	}
 }
