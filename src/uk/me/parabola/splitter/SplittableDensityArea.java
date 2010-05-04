@@ -41,18 +41,10 @@ public class SplittableDensityArea implements SplittableArea {
 			return Collections.emptyList();
 
 		Area bounds = densities.getBounds();
-		if (densities.getNodeCount() < maxNodes) {
+		if (densities.getNodeCount() <= maxNodes) {
 			densities = null;
 			return Collections.singletonList(bounds);
 		}
-
-		if (densities.getWidth() <= 1 && densities.getHeight() <= 1) {
-			System.out.println("Area " + bounds + " contains " + Utils.format(densities.getNodeCount())
-							+ " nodes but is already at the minimum size so can't be split further");
-			return Collections.singletonList(bounds);
-		}
-
-		List<Area> results = new ArrayList<Area>();
 
 		// Decide whether to split vertically or horizontally and go ahead with the split
 		int width1 = (int) (densities.getWidth() * Math.cos(Math.toRadians(Utils.toDegrees(bounds.getMinLat()))));
@@ -60,12 +52,17 @@ public class SplittableDensityArea implements SplittableArea {
 		int width = Math.max(width1, width2);
 
 		SplittableDensityArea[] splitResult;
-		if (densities.getHeight() > width && densities.getHeight() > 1) {
+		if (densities.getHeight() > 2 && (densities.getHeight() > width || densities.getWidth() <= 2)) {
 			splitResult = splitVert();
-		} else {
+		} else if (densities.getWidth() > 2) {
 			splitResult = splitHoriz();
+		} else {
+			System.out.println("Area " + bounds + " contains " + Utils.format(densities.getNodeCount())
+							+ " nodes but is already at the minimum size so can't be split further");
+			return Collections.singletonList(bounds);
 		}
 		densities = null;
+		List<Area> results = new ArrayList<Area>();
 		results.addAll(splitResult[0].split(maxNodes));
 		results.addAll(splitResult[1].split(maxNodes));
 		return results;
@@ -76,7 +73,6 @@ public class SplittableDensityArea implements SplittableArea {
 	 */
 	protected SplittableDensityArea[] splitHoriz() {
 		long sum = 0, weightedSum = 0;
-		int splitX;
 
 		for (int x = 0; x < densities.getWidth(); x++) {
 			for (int y = 0; y < densities.getHeight(); y++) {
@@ -85,13 +81,7 @@ public class SplittableDensityArea implements SplittableArea {
 				weightedSum += (count * x);
 			}
 		}
-		splitX = limit(0, densities.getWidth(), (int) (weightedSum / sum));
-
-		if (splitX % 2 != 0) {
-			splitX--;
-			if (splitX < 2)
-				splitX = 2;
-		}
+		int splitX = limit(0, densities.getWidth(), (int) (weightedSum / sum));
 
 		Area bounds = densities.getBounds();
 		int mid = bounds.getMinLong() + (splitX << densities.getShift());
@@ -105,7 +95,6 @@ public class SplittableDensityArea implements SplittableArea {
 
 	protected SplittableDensityArea[] splitVert() {
 		long sum = 0, weightedSum = 0;
-		int splitY;
 
 		for (int y = 0; y < densities.getHeight(); y++) {
 			for (int x = 0; x < densities.getWidth(); x++) {
@@ -114,13 +103,7 @@ public class SplittableDensityArea implements SplittableArea {
 				weightedSum += (count * y);
 			}
 		}
-		splitY = limit(0, densities.getHeight(), (int) (weightedSum / sum));
-
-		if (splitY % 2 != 0) {
-			splitY--;
-			if (splitY < 2)
-				splitY = 2;
-		}
+		int splitY = limit(0, densities.getHeight(), (int) (weightedSum / sum));
 
 		Area bounds = densities.getBounds();
 		int mid = bounds.getMinLat() + (splitY << densities.getShift());
@@ -132,13 +115,18 @@ public class SplittableDensityArea implements SplittableArea {
 		return new SplittableDensityArea[]{new SplittableDensityArea(bottom), new SplittableDensityArea(top)};
 	}
 
-	private int limit(int first, int second, long calcOffset) {
-		int mid = first + (int) calcOffset;
-		int limitoff = (second - first) / 5;
-		if (mid - first < limitoff)
+	private static int limit(int first, int second, int calcOffset) {
+		int mid = first + calcOffset;
+		int limitoff = Math.max((second - first) / 5, 2);
+		if (mid < first + limitoff)
 			mid = first + limitoff;
-		else if (second - mid < limitoff)
+		else if (mid > second - limitoff)
 			mid = second - limitoff;
+		if (mid % 2 != 0) {
+			mid--;
+			if (mid < first + 2)
+				mid = first + 2;
+		}
 		return mid;
 	}
 }
