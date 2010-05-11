@@ -220,7 +220,7 @@ public class OSMWriter {
 			writeString(numberFormat.format(value));
 		else {
 		     if (value < 0) {
-		    	 writeChar('-');
+		    	 charBuf[index++] = '-'; // Write directly.
 		    	 value = -value;
 		     }
 
