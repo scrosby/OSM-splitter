@@ -208,7 +208,6 @@ public class OSMWriter {
 		checkFlush(22);
         writeString(Double.toString(value));
 	}
-	
 	/** Write a double truncated to OSM's 7 digits of precision
 	 *
 	 *  TODO: Optimize. Responsible for >30% of the runtime after other using binary 
@@ -216,10 +215,22 @@ public class OSMWriter {
 	 */
 	private void writeDouble(double value) throws IOException {
 		checkFlush(22);
-		writeString(numberFormat.format(value));
-		return;
-	}
+		// Punt on some annoying specialcases
+		if (value < -200 || value > 200 || (value > -1 && value < 1))
+			writeString(numberFormat.format(value));
+		else {
+		     if (value < 0) {
+		    	 writeChar('-');
+		    	 value = -value;
+		     }
 
+		int val = (int)Math.round(value*10000000);
+		StringBuilder s = new StringBuilder(Integer.toString(val));
+		s.insert(s.length()-7, '.');
+		writeString(s.toString());
+		}
+	}
+	
 	private void writeInt(int value) throws IOException {
 		checkFlush(11);
 		index += Convert.intToString(value, charBuf, index);
