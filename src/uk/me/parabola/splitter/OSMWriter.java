@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +28,11 @@ import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public class OSMWriter {
+	static final DecimalFormat numberFormat = new DecimalFormat(
+			"0.#######;-0.#######",
+			new DecimalFormatSymbols(Locale.US)
+		);
+	
 	private final Area bounds;
 	private Writer writer;
 	private Area extendedBounds;
@@ -57,13 +64,13 @@ public class OSMWriter {
 		writeString("<osm version='0.5' generator='splitter'>\n");
 
 		writeString("<bounds minlat='");
-		writeDouble(Utils.toDegrees(bounds.getMinLat()));
+		writeLongDouble(Utils.toDegrees(bounds.getMinLat()));
 		writeString("' minlon='");
-		writeDouble(Utils.toDegrees(bounds.getMinLong()));
+		writeLongDouble(Utils.toDegrees(bounds.getMinLong()));
 		writeString("' maxlat='");
-		writeDouble(Utils.toDegrees(bounds.getMaxLat()));
+		writeLongDouble(Utils.toDegrees(bounds.getMaxLat()));
 		writeString("' maxlon='");
-		writeDouble(Utils.toDegrees(bounds.getMaxLong()));
+		writeLongDouble(Utils.toDegrees(bounds.getMaxLong()));
 		writeString("'/>\n");
 	}
 
@@ -196,9 +203,21 @@ public class OSMWriter {
 		index += end - start;
 	}
 
+	/** Write a double to full precision */
+	private void writeLongDouble(double value) throws IOException {
+		checkFlush(22);
+        writeString(Double.toString(value));
+	}
+	
+	/** Write a double truncated to OSM's 7 digits of precision
+	 *
+	 *  TODO: Optimize. Responsible for >30% of the runtime after other using binary 
+	 *  format and improved hash table.
+	 */
 	private void writeDouble(double value) throws IOException {
 		checkFlush(22);
-		writeString(Double.toString(value));
+		writeString(numberFormat.format(value));
+		return;
 	}
 
 	private void writeInt(int value) throws IOException {
