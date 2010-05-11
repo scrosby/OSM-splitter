@@ -38,7 +38,7 @@ public class IntIntMap {
 	//private int hit;
 	//private int miss;
 
-	private static final int OFF = 7;
+	private static final int OFF = 1472057057;
 
 	public IntIntMap() {
 		this(INIT_SIZE, 0.9f);
