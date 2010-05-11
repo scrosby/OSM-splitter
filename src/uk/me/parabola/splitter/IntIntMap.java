@@ -35,8 +35,8 @@ public class IntIntMap {
 
 	private int targetSize;
 	private final float loadFactor;
-	//private int hit;
-	//private int miss;
+	//private static long hit;
+	//private static long miss;
 
 	private static final int OFF = 1472057057;
 
@@ -131,26 +131,17 @@ public class IntIntMap {
 	}
 
 	private int keyPos(int key) {
-		int k = key & (capacity - 1);
-
+		int mask = capacity - 1;
+		int k = key & mask;
 		int h1 = keys[k];
-		if (h1 != 0 && h1 != key) {
-			for (int k2 = k+OFF; ; k2+= OFF) {
-				//miss++;
-				if (k2 >= capacity)
-					//noinspection AssignmentToForLoopParameter
-					k2 -= capacity;
-
-				int fk = keys[k2];
-				if (fk == 0 || fk == key) {
-					//hit++;
-					//if ((size % 100000) == 0)
-					//	System.out.printf("hit/miss %f at size %d, %d\n",  100.0*hit/(miss - hit), size, targetSize);
-
-					return k2;
-				}
-			}
+		// hit++;
+		while (h1 != 0 && h1 != key) {
+			// miss++;
+			k = (k + OFF) & mask;
+			h1 = keys[k];
 		}
+		// if (((hit) % 1000000) == 0)
+		//     System.out.printf("hit/probe %f at hit %d probe %d, %d\n",100.0*hit/(miss + hit), hit, hit+miss,size);
 		return k;
 	}
 
