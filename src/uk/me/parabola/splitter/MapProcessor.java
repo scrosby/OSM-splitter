@@ -34,14 +34,6 @@ public interface MapProcessor {
 	void boundTag(Area bounds);
 
 	/**
-	 * Called when a node is encountered.
-	 * @param id the node's ID.
-	 * @param lat the node's latitude.
-	 * @param lon the node's longitude.
-	 */
-	void startNode(int id, double lat, double lon);
-
-	/**
 	 * Called when a way is encountered.
 	 * @param id the way's ID.
 	 */
@@ -53,14 +45,11 @@ public interface MapProcessor {
 	 */
 	void startRelation(int id);
 
+	
 	/**
-	 * Called when a tag is encountered on a node. This method will be
-	 * called for every tag associated with the node that was specified
-	 * in the most recent call to {@link #startNode(int, double, double)}.
-	 * @param key the tag's key.
-	 * @param value the tag's value.
-	 */
-	void nodeTag(String key, String value);
+	 * Called when a whole node has been processed. 
+	*/
+	void processNode(Node n);
 
 	/**
 	 * Called when a tag is encountered on a way. This method will be
@@ -103,13 +92,6 @@ public interface MapProcessor {
 	 * @param nodeId the ID of the node.
 	 */
 	void relationWay(int wayId, String role);
-
-	/**
-	 * Called when processing is complete for a node. This method will be called once
-	 * there is no further data available for the node specified in the most recent
-	 * call to {@link #startNode(int, double, double)}.
-	 */
-	void endNode();
 
 	/**
 	 * Called when processing is complete for a way. This method will be called once

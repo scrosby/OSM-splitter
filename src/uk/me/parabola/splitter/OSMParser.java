@@ -29,6 +29,8 @@ class OSMParser extends AbstractXppParser implements MapReader {
 		Node, Way, Relation, None
 	}
 
+	private Node currentNode = new Node();	
+
 	private final MapProcessor processor;
 
 	// There are mixed nodes and ways in the file
@@ -139,7 +141,8 @@ class OSMParser extends AbstractXppParser implements MapReader {
 			maxNodeId = id;
 		}
 
-		processor.startNode(id, lat, lon);
+		currentNode = new Node();
+		currentNode.set(id, lat, lon);
 		state = State.Node;
 	}
 
@@ -155,7 +158,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 
 	private void processNode(CharSequence name) {
 		if (name.equals("tag")) {
-			processor.nodeTag(getAttr("k"), getAttr("v"));
+			currentNode.addTag(getAttr("k"), getAttr("v"));
 		}
 	}
 
@@ -235,8 +238,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	public void endElement(String name) {
 		if (state == State.Node) {
 			if (name.equals("node")) {
-				if (!startNodeOnly)
-					processor.endNode();
+				processor.processNode(currentNode);
 				state = State.None;
 				nodeCount++;
 				if (nodeCount % NODE_STATUS_UPDATE_THRESHOLD == 0) {

@@ -33,7 +33,6 @@ class SplitProcessor implements MapProcessor {
 	private final BlockingQueue<InputQueueInfo> writerInputQueue;
 	private final ArrayList<Thread> workerThreads;
 
-	private Node currentNode = new Node();
 	private int currentNodeAreaSet;
 
 	private Way currentWay = new Way();
@@ -77,11 +76,6 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	@Override
-	public void startNode(int id, double lat, double lon) {
-		currentNode.set(id, lat, lon);
-	}
-
-	@Override
 	public void startWay(int id) {
 		currentWay.set(id);
 	}
@@ -89,11 +83,6 @@ class SplitProcessor implements MapProcessor {
 	@Override
 	public void startRelation(int id) {
 		currentRelation.set(id);
-	}
-
-	@Override
-	public void nodeTag(String key, String value) {
-		currentNode.addTag(key, value);
 	}
 
 	@Override
@@ -172,13 +161,12 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	@Override
-	public void endNode() {
+	public void processNode(Node n) {
 		try {
-			writeNode();
-			currentNode = new Node();
+			writeNode(n);
 			currentNodeAreaSet = 0;
 		} catch (IOException e) {
-			throw new RuntimeException("failed to write node " + currentNode.getId(), e);
+			throw new RuntimeException("failed to write node " + n.getId(), e);
 		}
 	}
 
@@ -225,7 +213,7 @@ class SplitProcessor implements MapProcessor {
 		}
 	}
 
-	private void writeNode() throws IOException {
+	private void writeNode(Node currentNode) throws IOException {
 		for (int n = 0; n < writers.length; n++) {
 			boolean found = writers[n].nodeBelongsToThisArea(currentNode); 
 			if (found) {

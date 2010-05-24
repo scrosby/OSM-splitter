@@ -48,9 +48,9 @@ class DensityMapCollector implements MapCollector {
 	}
 
 	@Override
-	public void startNode(int id, double lat, double lon) {
-		int glat = Utils.toMapUnit(lat);
-		int glon = Utils.toMapUnit(lon);
+	public void processNode(Node n) {
+		int glat = Utils.toMapUnit(n.getLat());
+		int glon = Utils.toMapUnit(n.getLon());
 		densityMap.addNode(glat, glon);
 		details.addToBounds(glat, glon);
 	}
@@ -61,8 +61,6 @@ class DensityMapCollector implements MapCollector {
 	@Override
 	public void startRelation(int id) {}
 
-	@Override
-	public void nodeTag(String key, String value) {}
 
 	@Override
 	public void wayTag(String key, String value) {}
@@ -78,9 +76,6 @@ class DensityMapCollector implements MapCollector {
 
 	@Override
 	public void relationWay(int wayId, String role) {}
-
-	@Override
-	public void endNode() {}
 
 	@Override
 	public void endWay() {}
