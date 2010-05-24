@@ -51,7 +51,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 		this.startNodeOnly = processor.isStartNodeOnly();
 		this.mixed = mixed;
 	}
-
+	/*
 	@Override
 	public long getNodeCount() {
 		return nodeCount;
@@ -76,11 +76,11 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	public int getMaxNodeId() {
 		return maxNodeId;
 	}
-
+	*/
 	public void endMap() {
 		processor.endMap();
 	}
-
+	
 	/**
 	 * Receive notification of the start of an element.
 	 */

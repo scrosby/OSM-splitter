@@ -14,13 +14,13 @@
 package uk.me.parabola.splitter;
 
 public interface MapReader {
-	long getNodeCount();
+	//long getNodeCount();
 
-	long getWayCount();
+	//long getWayCount();
 
-	long getRelationCount();
+	//long getRelationCount();
 
-	int getMinNodeId();
+	//int getMinNodeId();
 
-	int getMaxNodeId();
+	//int getMaxNodeId();
 }

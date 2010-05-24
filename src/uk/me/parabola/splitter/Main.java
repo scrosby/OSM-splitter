@@ -13,6 +13,9 @@
 
 package uk.me.parabola.splitter;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,6 +34,8 @@ import uk.me.parabola.splitter.geo.DefaultCityFinder;
 import uk.me.parabola.splitter.geo.DummyCityFinder;
 
 import org.xmlpull.v1.XmlPullParserException;
+
+import crosby.binary.file.BlockInputStream;
 
 /**
  * Splitter for OSM files with the purpose of providing input files for mkgmap.
@@ -220,14 +225,15 @@ public class Main {
 
 		MapCollector nodes = densityMap ? new DensityMapCollector(trim, resolution) : new NodeCollector();
 		MapProcessor processor = nodes;
-		MapReader mapReader = processMap(processor);
-		System.out.print("A total of " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
-						Utils.format(mapReader.getWayCount()) + " ways and " +
-						Utils.format(mapReader.getRelationCount()) + " relations were processed ");
+		//MapReader mapReader = 
+		processMap(processor);
+		//System.out.print("A total of " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
+		//				Utils.format(mapReader.getWayCount()) + " ways and " +
+		//				Utils.format(mapReader.getRelationCount()) + " relations were processed ");
 
-		System.out.println("in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
-		System.out.println("Min node ID = " + mapReader.getMinNodeId());
-		System.out.println("Max node ID = " + mapReader.getMaxNodeId());
+		//System.out.println("in " + filenames.size() + (filenames.size() == 1 ? " file" : " files"));
+		//System.out.println("Min node ID = " + mapReader.getMinNodeId());
+		//System.out.println("Max node ID = " + mapReader.getMaxNodeId());
 
 		System.out.println("Time: " + new Date());
 
@@ -298,33 +304,51 @@ public class Main {
 							areas.get(i * maxAreasPerPass + currentWriters.length - 1).getMapId() + ')');
 
 			MapProcessor processor = new SplitProcessor(currentWriters, maxThreads);
-			MapReader mapReader = processMap(processor);
-			System.out.println("Wrote " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
-							Utils.format(mapReader.getWayCount()) + " ways, " +
-							Utils.format(mapReader.getRelationCount()) + " relations");
+			processMap(processor);
+			//System.out.println("Wrote " + Utils.format(mapReader.getNodeCount()) + " nodes, " +
+			//				Utils.format(mapReader.getWayCount()) + " ways, " +
+			//				Utils.format(mapReader.getRelationCount()) + " relations");
 		}
 	}
-
-	private MapReader processMap(MapProcessor processor) throws XmlPullParserException, IOException {
-			OSMParser parser = new OSMParser(processor, mixed);
-			processOsmFiles(parser);
-			return parser;
-	}
-
-	private void processOsmFiles(OSMParser parser) throws IOException, XmlPullParserException {
-		for (String filename : filenames) {
-			System.out.println("Processing " + filename);
-			Reader reader = Utils.openFile(filename, maxThreads > 1);
-			parser.setReader(reader);
-			try {
-				parser.parse();
-			} finally {
-				reader.close();
-			}
-		}
-		parser.endMap();
-	}
-
+	
+	private void processMap(MapProcessor processor) throws XmlPullParserException {
+	// Create both an XML reader and a binary reader, Dispatch each input to the
+    // Appropriate parser.
+    OSMParser parser = new OSMParser(processor, mixed);
+    for (String filename : filenames) {
+      System.out.println("Processing " + filename);
+      try {
+        if (filename.endsWith(".bin")) {
+          // Is it a binary file?
+          File file = new File(filename);
+          BlockInputStream blockinput = (new BlockInputStream(
+              new FileInputStream(file), new BinaryMapParser(processor)));
+          try {
+            blockinput.process();
+          } finally {
+            blockinput.close();
+          }
+        } else {
+          // No, try XML.
+	  Reader reader = Utils.openFile(filename, maxThreads > 1);
+          parser.setReader(reader);
+          try {
+            parser.parse();
+          } finally {
+            reader.close();
+          }
+        }
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      } catch (XmlPullParserException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    processor.endMap();
+  }
+	
 	/**
 	 * Write a file that can be given to mkgmap that contains the correct arguments
 	 * for the split file pieces.  You are encouraged to edit the file and so it
