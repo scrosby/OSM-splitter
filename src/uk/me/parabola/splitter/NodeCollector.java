@@ -49,22 +49,10 @@ class NodeCollector implements MapCollector {
 	}
 
 	@Override
-	public void startRelation(int id) {}
-
-	@Override
-	public void relationTag(String key, String value) {}
-
-	@Override
-	public void relationNode(int nodeId, String role) {}
-
-	@Override
-	public void relationWay(int wayId, String role) {}
-
-	@Override
 	public void processWay(Way w) {}
 
 	@Override
-	public void endRelation() {}
+	public void processRelation(Relation r) {}
 
 	@Override
 	public void endMap() {}

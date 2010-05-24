@@ -19,6 +19,8 @@ import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import uk.me.parabola.splitter.Relation.Member;
+
 /**
  * Splits a map into multiple areas.
  */
@@ -35,8 +37,6 @@ class SplitProcessor implements MapProcessor {
 
 	private int currentNodeAreaSet;
 	private BitSet currentWayAreaSet;
-
-	private Relation currentRelation = new Relation();
 	private BitSet currentRelAreaSet;
 	
 	private final int maxThreads;
@@ -73,20 +73,8 @@ class SplitProcessor implements MapProcessor {
 	public void boundTag(Area bounds) {
 	}
 
-	@Override
-	public void startRelation(int id) {
-		currentRelation.set(id);
-	}
-
-	@Override
-	public void relationTag(String key, String value) {
-		currentRelation.addTag(key, value);
-	}
-
-	@Override
-	public void relationNode(int id, String role) {
+	private void relationNode(int id, String role) {
 		{
-			currentRelation.addMember("node", id, role);
 			int set = coords.get(id);
 			if (set != 0) {
 				int mask = 0xff;
@@ -101,11 +89,9 @@ class SplitProcessor implements MapProcessor {
 		}
 	}
 
-	@Override
-	public void relationWay(int id, String role) {
+	private void relationWay(int id, String role) {
 		{
 			long[] bigSet;
-			currentRelation.addMember("way", id, role);
 			int set = ways.get(id);
 			if (set != 0) {
 				int mask = 0xff;
@@ -168,13 +154,22 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	@Override
-	public void endRelation() {
+	public void processRelation(Relation r) {
 		try {
-			writeRelation();
-			currentRelation = new Relation();
+			for (Member mem : r.getMembers()) {
+				String role = mem.getRole();
+				int id = mem.getRef();
+				if (mem.getType().equals("node")) {
+					relationNode(id,role);
+				} else if (mem.getType().equals("way")){
+					relationWay(id,role);
+				}			
+			}
+			
+			writeRelation(r);
 			currentRelAreaSet.clear();
 		} catch (IOException e) {
-			throw new RuntimeException("failed to write relation " + currentRelation.getId(), e);
+			throw new RuntimeException("failed to write relation " + r.getId(), e);
 		}
 	}
 
@@ -262,7 +257,7 @@ class SplitProcessor implements MapProcessor {
 
 	private boolean seenRel;
 
-	private void writeRelation() throws IOException {
+	private void writeRelation(Relation currentRelation) throws IOException {
 		if (!seenRel) {
 			seenRel = true;
 			System.out.println("Writing relations " + new Date());

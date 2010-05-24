@@ -31,6 +31,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 
 	private Node currentNode = new Node();	
 	private Way currentWay = new Way();	
+	private Relation currentRelation = new Relation();	
 
 	private final MapProcessor processor;
 
@@ -154,7 +155,8 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	}
 
 	private void startRelation() {
-		processor.startRelation(getIntAttr("id"));
+		currentRelation = new Relation();
+		currentRelation.set(getIntAttr("id"));
 		state = State.Relation;
 	}
 
@@ -174,15 +176,13 @@ class OSMParser extends AbstractXppParser implements MapReader {
 
 	private void processRelation(CharSequence name) {
 		if (name.equals("tag")) {
-			processor.relationTag(getAttr("k"), getAttr("v"));
+			currentRelation.addTag(getAttr("k"), getAttr("v"));
 		} else if (name.equals("member")) {
 			String type = getAttr("type");
 			int id = getIntAttr("ref");
 			String role = getAttr("role");
-			if ("node".equals(type)) {
-				processor.relationNode(id, role);
-			} else if ("way".equals(type)) {
-				processor.relationWay(id, role);
+			if ("node".equals(type) || "way".equals(type)) {
+				currentRelation.addMember(type, id, role);
 			}
 		}
 	}
@@ -260,7 +260,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 		} else if (state == State.Relation) {
 			if (name.equals("relation")) {
 				if (!startNodeOnly)
-					processor.endRelation();
+					processor.processRelation(currentRelation);
 				state = State.None;
 				relationCount++;
 				if (relationCount % RELATION_STATUS_UPDATE_THRESHOLD == 0) {
