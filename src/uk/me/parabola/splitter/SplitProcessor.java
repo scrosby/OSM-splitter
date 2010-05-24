@@ -34,8 +34,6 @@ class SplitProcessor implements MapProcessor {
 	private final ArrayList<Thread> workerThreads;
 
 	private int currentNodeAreaSet;
-
-	private Way currentWay = new Way();
 	private BitSet currentWayAreaSet;
 
 	private Relation currentRelation = new Relation();
@@ -76,42 +74,13 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	@Override
-	public void startWay(int id) {
-		currentWay.set(id);
-	}
-
-	@Override
 	public void startRelation(int id) {
 		currentRelation.set(id);
 	}
 
 	@Override
-	public void wayTag(String key, String value) {
-		currentWay.addTag(key, value);
-	}
-
-	@Override
 	public void relationTag(String key, String value) {
 		currentRelation.addTag(key, value);
-	}
-
-	@Override
-	public void wayNode(int id) {
-		// Get the list of areas that the node is in.  A node may be in
-		// more than one area because of overlap.
-		int set = coords.get(id);
-
-		// add the list of areas to the currentWayAreaSet
-		if (set != 0) {
-			int mask = 0xff;
-			for (int slot = 0; slot < 4; slot++, mask <<= 8) {
-				int val = (set & mask) >>> (slot * 8);
-				if (val == 0)
-					break;
-				currentWayAreaSet.set(val - 1);
-			}
-		}
-		currentWay.addRef(id);
 	}
 
 	@Override
@@ -171,13 +140,30 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	@Override
-	public void endWay() {
+	public void processWay(Way w) {
+
+		for (int id: w.getRefs().asArray()) {
+			// Get the list of areas that the node is in.  A node may be in
+			// more than one area because of overlap.
+			int set = coords.get(id);
+
+			// add the list of areas to the currentWayAreaSet
+			if (set != 0) {
+				int mask = 0xff;
+				for (int slot = 0; slot < 4; slot++, mask <<= 8) {
+					int val = (set & mask) >>> (slot * 8);
+				if (val == 0)
+					break;
+				currentWayAreaSet.set(val - 1);
+				}
+			}
+		}
+		
 		try {
-			writeWay();
-			currentWay = new Way();
+			writeWay(w);
 			currentWayAreaSet.clear();
 		} catch (IOException e) {
-			throw new RuntimeException("failed to write way " + currentWay.getId(), e);
+			throw new RuntimeException("failed to write way " + w.getId(), e);
 		}
 	}
 
@@ -237,7 +223,7 @@ class SplitProcessor implements MapProcessor {
 
 	private boolean seenWay;
 
-	private void writeWay() throws IOException {
+	private void writeWay(Way currentWay) throws IOException {
 		if (!seenWay) {
 			seenWay = true;
 			System.out.println("Writing ways " + new Date());

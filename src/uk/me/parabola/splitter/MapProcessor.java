@@ -34,12 +34,6 @@ public interface MapProcessor {
 	void boundTag(Area bounds);
 
 	/**
-	 * Called when a way is encountered.
-	 * @param id the way's ID.
-	 */
-	void startWay(int id);
-
-	/**
 	 * Called when a relation is encountered.
 	 * @param id the relation's ID.
 	 */
@@ -52,15 +46,6 @@ public interface MapProcessor {
 	void processNode(Node n);
 
 	/**
-	 * Called when a tag is encountered on a way. This method will be
-	 * called for every tag associated with the way that was specified
-	 * in the most recent call to {@link #startWay(int)}.
-	 * @param key the tag's key.
-	 * @param value the tag's value.
-	 */
-	void wayTag(String key, String value);
-
-	/**
 	 * Called when a tag is encountered on a relation. This method will
 	 * be called for every tag associated with the relation that was
 	 * specified in the most recent call to {@link #startRelation(int)}.
@@ -68,14 +53,6 @@ public interface MapProcessor {
 	 * @param value the tag's value.
 	 */
 	void relationTag(String key, String value);
-
-	/**
-	 * Called when a reference to a node is encountered within a way. This
-	 * method will be called for every node associated with the way that was
-	 * specified in the most recent call to {@link #startWay(int)} .
-	 * @param nodeId the ID of the node.
-	 */
-	void wayNode(int nodeId);
 
 	/**
 	 * Called when a reference to a node is encountered within a relation.
@@ -93,13 +70,8 @@ public interface MapProcessor {
 	 */
 	void relationWay(int wayId, String role);
 
-	/**
-	 * Called when processing is complete for a way. This method will be called once
-	 * there is no further data available for the way specified in the most recent
-	 * call to {@link #startWay(int)}.
-	 */
-	void endWay();
-
+	void processWay(Way w);
+	
 	/**
 	 * Called when processing is complete for a relation. This method will be called once
 	 * there is no further data available for the relation specified in the most recent

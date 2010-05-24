@@ -56,20 +56,10 @@ class DensityMapCollector implements MapCollector {
 	}
 
 	@Override
-	public void startWay(int id) {}
-
-	@Override
 	public void startRelation(int id) {}
-
-
-	@Override
-	public void wayTag(String key, String value) {}
 
 	@Override
 	public void relationTag(String key, String value) {}
-
-	@Override
-	public void wayNode(int nodeId) {}
 
 	@Override
 	public void relationNode(int nodeId, String role) {}
@@ -78,7 +68,7 @@ class DensityMapCollector implements MapCollector {
 	public void relationWay(int wayId, String role) {}
 
 	@Override
-	public void endWay() {}
+	public void processWay(Way w) {}
 
 	@Override
 	public void endRelation() {}

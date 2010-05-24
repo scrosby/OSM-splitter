@@ -30,6 +30,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	}
 
 	private Node currentNode = new Node();	
+	private Way currentWay = new Way();	
 
 	private final MapProcessor processor;
 
@@ -147,7 +148,8 @@ class OSMParser extends AbstractXppParser implements MapReader {
 	}
 
 	private void startWay() {
-		processor.startWay(getIntAttr("id"));
+		currentWay = new Way();
+		currentWay.set(getIntAttr("id"));
 		state = State.Way;
 	}
 
@@ -164,9 +166,9 @@ class OSMParser extends AbstractXppParser implements MapReader {
 
 	private void processWay(CharSequence name) {
 		if (name.equals("nd")) {
-			processor.wayNode(getIntAttr("ref"));
+			currentWay.addRef(getIntAttr("ref"));
 		} else if (name.equals("tag")) {
-			processor.wayTag(getAttr("k"), getAttr("v"));
+			currentWay.addTag(getAttr("k"), getAttr("v"));
 		}
 	}
 
@@ -248,7 +250,7 @@ class OSMParser extends AbstractXppParser implements MapReader {
 		} else if (state == State.Way) {
 			if (name.equals("way")) {
 				if (!startNodeOnly)
-					processor.endWay();
+					processor.processWay(currentWay);
 				state = State.None;
 				wayCount++;
 				if (wayCount % WAY_STATUS_UPDATE_THRESHOLD == 0) {
