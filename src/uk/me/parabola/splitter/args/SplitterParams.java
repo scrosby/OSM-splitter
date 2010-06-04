@@ -63,4 +63,7 @@ public interface SplitterParams {
 
 	@Option(description = "Don't trim empty space off the edges of tiles.")
 	boolean isNoTrim();
+
+	@Option(defaultValue = "auto", description = "The maximum number of threads used by splitter.")
+	ThreadCount getMaxThreads();
 }

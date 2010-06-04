@@ -13,8 +13,11 @@
 package uk.me.parabola.splitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * Splits a map into multiple areas.
@@ -26,6 +29,9 @@ class SplitProcessor implements MapProcessor {
 	private final IntObjMap<long[]> bigWays = new IntObjMap<long[]>();
 
 	private final OSMWriter[] writers;
+	private final BlockingQueue<Element>[] writerInputQueues;
+	private final BlockingQueue<InputQueueInfo> writerInputQueue;
+	private final ArrayList<Thread> workerThreads;
 
 	private Node currentNode = new Node();
 	private int currentNodeAreaSet;
@@ -35,11 +41,30 @@ class SplitProcessor implements MapProcessor {
 
 	private Relation currentRelation = new Relation();
 	private BitSet currentRelAreaSet;
+	
+	private final int maxThreads;
 
-	SplitProcessor(OSMWriter[] writers) {
+	SplitProcessor(OSMWriter[] writers, int maxThreads) {
 		this.writers = writers;
+		this.maxThreads = maxThreads;
+		this.writerInputQueue = new ArrayBlockingQueue<InputQueueInfo>(writers.length); 
+		this.writerInputQueues = new BlockingQueue[writers.length];
+		for (int i = 0; i < writerInputQueues.length;i++) {
+			writerInputQueues[i] = new ArrayBlockingQueue<Element>(NO_ELEMENTS);
+			writerInputQueue.add(new InputQueueInfo(this.writers[i], writerInputQueues[i]));
+		}
+
 		currentWayAreaSet = new BitSet(writers.length);
 		currentRelAreaSet = new BitSet(writers.length);
+		
+		int noOfWorkerThreads = this.maxThreads - 1;
+		workerThreads = new ArrayList<Thread>(noOfWorkerThreads);
+		for (int i = 0; i < noOfWorkerThreads; i++) {
+			Thread worker = new Thread(new OSMWriterWorker());
+			worker.setName("worker-" + i);
+			workerThreads.add(worker);
+			worker.start();
+		}
 	}
 
 	@Override
@@ -150,7 +175,7 @@ class SplitProcessor implements MapProcessor {
 	public void endNode() {
 		try {
 			writeNode();
-			currentNode.reset();
+			currentNode = new Node();
 			currentNodeAreaSet = 0;
 		} catch (IOException e) {
 			throw new RuntimeException("failed to write node " + currentNode.getId(), e);
@@ -161,7 +186,7 @@ class SplitProcessor implements MapProcessor {
 	public void endWay() {
 		try {
 			writeWay();
-			currentWay.reset();
+			currentWay = new Way();
 			currentWayAreaSet.clear();
 		} catch (IOException e) {
 			throw new RuntimeException("failed to write way " + currentWay.getId(), e);
@@ -172,7 +197,7 @@ class SplitProcessor implements MapProcessor {
 	public void endRelation() {
 		try {
 			writeRelation();
-			currentRelation.reset();
+			currentRelation = new Relation();
 			currentRelAreaSet.clear();
 		} catch (IOException e) {
 			throw new RuntimeException("failed to write relation " + currentRelation.getId(), e);
@@ -181,6 +206,20 @@ class SplitProcessor implements MapProcessor {
 
 	@Override
 	public void endMap() {
+		for (int i = 0; i < writerInputQueues.length; i++) {
+			try {
+				writerInputQueues[i].put(STOP_ELEMENT);
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Failed to add the stop element for worker thread " + i, e);
+			}
+		}
+		for (Thread workerThread : workerThreads) {
+			try {
+				workerThread.join();
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Failed to join for thread " + workerThread.getName(), e);
+			}
+		}
 		for (OSMWriter writer : writers) {
 			writer.finishWrite();
 		}
@@ -188,8 +227,13 @@ class SplitProcessor implements MapProcessor {
 
 	private void writeNode() throws IOException {
 		for (int n = 0; n < writers.length; n++) {
-			boolean found = writers[n].write(currentNode);
+			boolean found = writers[n].nodeBelongsToThisArea(currentNode); 
 			if (found) {
+				if (maxThreads > 1) {
+					addToWorkingQueue(n, currentNode);
+				} else {
+					writers[n].write(currentNode);
+				}
 				if (currentNodeAreaSet == 0) {
 					currentNodeAreaSet = n + 1;
 				} else {
@@ -215,7 +259,11 @@ class SplitProcessor implements MapProcessor {
 				// this way falls into 4 or less areas (the normal case). Store these areas in the ways map
 				int set = 0;
 				for (int n = currentWayAreaSet.nextSetBit(0); n >= 0; n = currentWayAreaSet.nextSetBit(n + 1)) {
-					writers[n].write(currentWay);
+					if (maxThreads > 1) {
+						addToWorkingQueue(n, currentWay);
+					} else {
+						writers[n].write(currentWay);
+					}
 					// add one to the area so we're in the range 1-255. This is because we treat 0 as the
 					// equivalent of a null
 					set = set << 8 | (n + 1);
@@ -226,7 +274,11 @@ class SplitProcessor implements MapProcessor {
 				// these areas in the bigWays map
 				long[] set = new long[currentWayAreaSet.size() / 64];
 				for (int n = currentWayAreaSet.nextSetBit(0); n >= 0; n = currentWayAreaSet.nextSetBit(n + 1)) {
-					writers[n].write(currentWay);
+					if (maxThreads > 1) {
+						addToWorkingQueue(n, currentWay);
+					} else {
+						writers[n].write(currentWay);
+					}
 					set[n / 64] |= 1L << (n % 64);
 				}
 				bigWays.put(currentWay.getId(), set);
@@ -243,7 +295,11 @@ class SplitProcessor implements MapProcessor {
 		}
 		for (int n = currentRelAreaSet.nextSetBit(0); n >= 0; n = currentRelAreaSet.nextSetBit(n + 1)) {
 			// if n is out of bounds, then something has gone wrong
-			writers[n].write(currentRelation);
+			if (maxThreads > 1) {
+				addToWorkingQueue(n, currentRelation);
+			} else {
+				writers[n].write(currentRelation);
+			}
 		}
 	}
 
@@ -261,5 +317,82 @@ class SplitProcessor implements MapProcessor {
 		// it was not added
 		System.err.println("Node " + id + " in too many areas. Already in areas 0x" + Integer.toHexString(set) + ", trying to add area 0x" + Integer.toHexString(v));
 		return set;
+	}
+
+	private void addToWorkingQueue(int writerNumber, Element element) {
+		try {
+			writerInputQueues[writerNumber].put(element);
+		} catch (InterruptedException e) {
+			throw new RuntimeException("Failed to write node " + element.getId() + " to worker thread " + writerNumber, e);
+		}
+	}
+
+	private static class InputQueueInfo {
+		private final OSMWriter writer;
+		private final BlockingQueue<Element> inputQueue;
+
+		public InputQueueInfo(OSMWriter writer, BlockingQueue<Element> inputQueue) {
+      this.writer = writer;
+			this.inputQueue = inputQueue;
+		}
+	}
+
+	private static final Element STOP_ELEMENT = new Element();
+
+	public static final int NO_ELEMENTS = 1000;
+
+	private class OSMWriterWorker implements Runnable {
+
+		public void processElement(Element element, OSMWriter writer) throws IOException {
+			if (element instanceof Node) {
+				writer.write((Node) element);
+			} else if (element instanceof Way) {
+				writer.write((Way) element);
+			} else if (element instanceof Relation) {
+				writer.write((Relation) element);
+			}
+		}
+
+		@Override
+		public void run() {
+			boolean finished = false;
+			while (!finished) {
+				InputQueueInfo workPackage = writerInputQueue.poll();
+				if (workPackage==null) {
+					finished=true;
+				} else {
+					while (!workPackage.inputQueue.isEmpty()) {
+						Element element =null;
+						try {
+							element = workPackage.inputQueue.poll();
+							if (element == null) {
+								writerInputQueue.put(workPackage);
+								workPackage=null;
+								break;
+							} else if (element == STOP_ELEMENT) {
+								workPackage=null;
+								System.out.println("Thread " + Thread.currentThread().getName() + " has finished");
+								// this writer is finished
+								break;
+							} else {
+								processElement(element, workPackage.writer);
+							}
+							
+						} catch (InterruptedException e) {
+							throw new RuntimeException("Thread " + Thread.currentThread().getName() + " failed to get next element", e);
+						} catch (IOException e) {
+							throw new RuntimeException("Thread " + Thread.currentThread().getName() + " failed to write element " + element.getId() + '(' + element.getClass().getSimpleName() + ')', e);
+						}
+					}
+					if (workPackage != null) {
+						try {
+							writerInputQueue.put(workPackage);
+						} catch (InterruptedException e) {
+							throw new RuntimeException("Thread " + Thread.currentThread().getName() + " failed to return work package", e);
+						}
+					}
+				}
+			}
+		}
 	}
 }

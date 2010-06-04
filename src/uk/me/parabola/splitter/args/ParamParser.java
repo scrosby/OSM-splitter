@@ -168,7 +168,7 @@ public class ParamParser {
 			}
 			buf.append(param.getDescription());
 			if (param.getDefaultValue() != null) {
-				buf.append(" Default is ").append(param.getDefaultValue());
+				buf.append(" Default is ").append(param.getDefaultValue()).append('.');
 			}
 			System.out.println(buf.toString());
 		}

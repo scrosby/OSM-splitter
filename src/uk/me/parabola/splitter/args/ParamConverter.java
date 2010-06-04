@@ -33,6 +33,7 @@ public class ParamConverter {
 		converterMap.put(Integer.class, new IntegerConverter());
 		converterMap.put(Long.class, new LongConverter());
 		converterMap.put(File.class, new Converter<File>() { @Override File convert(String value) { return new File(value); } });
+		converterMap.put(ThreadCount.class, new ThreadCountConverter());
 
 		primitiveDefaults = new HashMap<Class<?>, Object>(10);
 		primitiveDefaults.put(Boolean.TYPE, Boolean.FALSE);
@@ -86,6 +87,31 @@ public class ParamConverter {
 				return Long.valueOf(value);
 			} catch (NumberFormatException e) {
 				throw new NumberFormatException('\'' + value + "' is not a valid number.");
+			}
+		}
+	}
+
+	private static class ThreadCountConverter extends Converter<ThreadCount> {
+		@Override
+		ThreadCount convert(String value) {
+			int cpuCores = Runtime.getRuntime().availableProcessors();
+			if ("auto".equals(value)) {
+				return new ThreadCount(cpuCores, true);
+			} else {
+				int threads = 0;
+				boolean valid = false;
+				try {
+					threads = Integer.valueOf(value);
+					if (threads >= 1 && threads <= cpuCores) {
+						valid = true;
+					}
+				} catch (NumberFormatException e) {
+				}
+				if (!valid) {
+					throw new IllegalArgumentException(
+							'\'' + value + "' should be a number in the range 1-" + cpuCores + ", or 'auto' to use all available CPU cores.");
+				}
+				return new ThreadCount(threads, false);
 			}
 		}
 	}

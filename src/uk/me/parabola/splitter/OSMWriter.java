@@ -77,24 +77,24 @@ public class OSMWriter {
 		}
 	}
 
-	public boolean write(Node node) throws IOException {
-		if (extendedBounds.contains(node.getMapLat(), node.getMapLon())) {
-			writeString("<node id='");
-			writeInt(node.getId());
-			writeString("' lat='");
-			writeDouble(node.getLat());
-			writeString("' lon='");
-			writeDouble(node.getLon());
-			if (node.hasTags()) {
-				writeString("'>\n");
-				writeTags(node);
-				writeString("</node>\n");
-			} else {
-				writeString("'/>\n");
-			}
-			return true;
+	public boolean nodeBelongsToThisArea(Node node) {
+		return (extendedBounds.contains(node.getMapLat(), node.getMapLon()));
+	}
+	
+	public void write(Node node) throws IOException {
+		writeString("<node id='");
+		writeInt(node.getId());
+		writeString("' lat='");
+		writeDouble(node.getLat());
+		writeString("' lon='");
+		writeDouble(node.getLon());
+		if (node.hasTags()) {
+			writeString("'>\n");
+			writeTags(node);
+			writeString("</node>\n");
+		} else {
+			writeString("'/>\n");
 		}
-		return false;
 	}
 
 	public void write(Way way) throws IOException {

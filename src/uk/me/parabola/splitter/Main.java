@@ -89,6 +89,8 @@ public class Main {
 	private boolean densityMap;
 
 	private String kmlOutputFile;
+	
+	private int maxThreads;
 
 	private SplitterParams params;
 
@@ -232,6 +234,7 @@ public class Main {
 			System.out.println("WARNING: Specifying --legacy-split will cause the first stage of the split to take much more memory! This option is considered deprecated and will be removed in a future build.");
 		}
 
+		maxThreads = params.getMaxThreads().getCount();
 		filenames = parser.getAdditionalParams();
 
 		String splitFile = params.getSplitFile();
@@ -348,7 +351,7 @@ public class Main {
 							" areas (" + areas.get(i * maxAreasPerPass).getMapId() + " to " +
 							areas.get(i * maxAreasPerPass + currentWriters.length - 1).getMapId() + ')');
 
-			MapProcessor processor = new SplitProcessor(currentWriters);
+			MapProcessor processor = new SplitProcessor(currentWriters, maxThreads);
 			if (generateCache) {
 				if (passesRequired == 1) {
 					System.out.println("*********************************************************************");
