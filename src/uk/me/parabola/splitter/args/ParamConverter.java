@@ -23,16 +23,16 @@ import java.util.Map;
  * @author Chris Miller
  */
 public class ParamConverter {
-	private final Map<Class<?>, Converter> converterMap;
+	private final Map<Class<?>, Converter<?>> converterMap;
 	private final Map<Class<?>, Object> primitiveDefaults;
 
 	public ParamConverter() {
-		converterMap = new HashMap<Class<?>, Converter>(10);
-		converterMap.put(String.class, new Converter() { @Override Object convert(String value) { return value; } });
-		converterMap.put(Boolean.class, new Converter() { @Override Object convert(String value) { return Boolean.valueOf(value); } });
+		converterMap = new HashMap<Class<?>, Converter<?>>(10);
+		converterMap.put(String.class, new Converter<String>() { @Override String convert(String value) { return value; } });
+		converterMap.put(Boolean.class, new Converter<Boolean>() { @Override Boolean convert(String value) { return Boolean.valueOf(value); } });
 		converterMap.put(Integer.class, new IntegerConverter());
 		converterMap.put(Long.class, new LongConverter());
-		converterMap.put(File.class, new Converter() { @Override Object convert(String value) { return new File(value); } });
+		converterMap.put(File.class, new Converter<File>() { @Override File convert(String value) { return new File(value); } });
 
 		primitiveDefaults = new HashMap<Class<?>, Object>(10);
 		primitiveDefaults.put(Boolean.TYPE, Boolean.FALSE);
@@ -66,12 +66,12 @@ public class ParamConverter {
 		return converter.convert(value);
 	}
 
-	private abstract static class Converter {
-		abstract Object convert(String value);
+	private abstract static class Converter<T> {
+		abstract T convert(String value);
 	}
 
-	private static class IntegerConverter extends Converter {
-		@Override Object convert(String value) {
+	private static class IntegerConverter extends Converter<Integer> {
+		@Override Integer convert(String value) {
 			try {
 				return Integer.valueOf(value);
 			} catch (NumberFormatException e) {
@@ -80,8 +80,8 @@ public class ParamConverter {
 		}
 	}
 
-	private static class LongConverter extends Converter {
-		@Override Object convert(String value) {
+	private static class LongConverter extends Converter<Long> {
+		@Override Long convert(String value) {
 			try {
 				return Long.valueOf(value);
 			} catch (NumberFormatException e) {
