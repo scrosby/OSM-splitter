@@ -82,7 +82,7 @@ public class Utils {
 	 * @return A stream that will read the file, positioned at the beginning.
 	 * @throws IOException If the file cannot be opened for any reason.
 	 */
-	public static Reader openFile(String name) throws IOException {
+	public static Reader openFile(String name, boolean backgroundReader) throws IOException {
 		InputStream is = new BufferedInputStream(new FileInputStream(name), 8192);
 		if (name.endsWith(".gz")) {
 			try {
@@ -111,6 +111,9 @@ public class Utils {
 				zis.close();
 				throw new IOException("Unable to find a file inside " + name + " that starts with " + name.substring(0, name.length() - 4));
 			}
+		}
+		if (backgroundReader) {
+			is = new BackgroundInputStream(is);
 		}
 		return new InputStreamReader(is, Charset.forName("UTF-8"));
 	}

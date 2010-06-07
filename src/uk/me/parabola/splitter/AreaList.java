@@ -202,7 +202,7 @@ public class AreaList {
 	private void readKml(String filename) throws IOException {
 		try {
 			KmlParser parser = new KmlParser();
-			parser.setReader(Utils.openFile(filename));
+			parser.setReader(Utils.openFile(filename, false));
 			parser.parse();
 			areas = parser.getAreas();
 		} catch (XmlPullParserException e) {

@@ -46,7 +46,7 @@ public class CityLoader {
 	}
 
 	public List<City> load(String geoNamesFile) throws IOException {
-		BufferedReader r = new BufferedReader(Utils.openFile(geoNamesFile));
+		BufferedReader r = new BufferedReader(Utils.openFile(geoNamesFile, true));
 		List<City> result;
 		try {
 			result = load(r);

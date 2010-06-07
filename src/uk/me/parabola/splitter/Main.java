@@ -389,7 +389,7 @@ public class Main {
 	private void processOsmFiles(OSMParser parser) throws IOException, XmlPullParserException {
 		for (String filename : filenames) {
 			System.out.println("Processing " + filename);
-			Reader reader = Utils.openFile(filename);
+			Reader reader = Utils.openFile(filename, maxThreads > 1);
 			parser.setReader(reader);
 			try {
 				parser.parse();
