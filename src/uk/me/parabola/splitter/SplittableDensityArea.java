@@ -61,7 +61,7 @@ public class SplittableDensityArea implements SplittableArea {
 			return Collections.singletonList(bounds);
 		}
 
-		if (densities.getWidth() < 2 && densities.getHeight() < 2) {
+		if (densities.getWidth() < 4 && densities.getHeight() < 4) {
 			System.out.println("Area " + bounds + " contains " + Utils.format(densities.getNodeCount())
 							+ " nodes but is already at the minimum size so can't be split further");
 			return Collections.singletonList(bounds);
@@ -76,15 +76,15 @@ public class SplittableDensityArea implements SplittableArea {
 		Integer splitY = getSplitVert();
 		
 		// Try to split it based on dimension.
-		if (getAspectRatio() <= 1.0 && densities.getHeight() >= 2 && splitY != null) {
+		if (getAspectRatio() <= 1.0 && densities.getHeight() >= 4 && splitY != null) {
 			splitResult = splitVert(splitY);
 		}
 		// Either the natural split is horizontal, or no good vertical split. Try horizontal.
-		if (splitResult == null && densities.getWidth() >= 2 && splitX != null) {
+		if (splitResult == null && densities.getWidth() >= 4 && splitX != null) {
 			splitResult = splitHoriz(splitX);
 		} 
 		// If the natural horizontal split failed. Try vertical.
-		if (getAspectRatio() > 1.0 && splitResult == null && densities.getHeight() >= 2 && splitY != null) {
+		if (getAspectRatio() > 1.0 && splitResult == null && densities.getHeight() >= 4 && splitY != null) {
 			splitResult = splitVert(splitY);
 		} 
 		// No dice. Use this as-is.
@@ -122,7 +122,7 @@ public class SplittableDensityArea implements SplittableArea {
 	}
 
 	/**
-	 * Split into left and right areas. Requires width >= 2 (so that we can have a even midpoint.
+	 * Split into left and right areas. Requires width >= 4 (so that we can have a even midpoint.
 	 */
 	protected Integer getSplitHoriz() {
 		long sum = 0, weightedSum = 0;
@@ -151,7 +151,7 @@ public class SplittableDensityArea implements SplittableArea {
 	}
 
 	/**
-	 * Split into top and bottom areas. Requires height >= 2 (so that we can have a even midpoint.
+	 * Split into top and bottom areas. Requires height >= 4 (so that we can have a even midpoint.
 	 */
 	protected Integer getSplitVert() {
 		long sum = 0, weightedSum = 0;
@@ -187,8 +187,8 @@ public class SplittableDensityArea implements SplittableArea {
 		else if (second - mid < limitoff)
 			mid = second - limitoff;
 
-		//if (mid % 2 != 0)
-		//	mid--;
+		if (mid % 2 != 0)
+			mid--;
 		if (mid == first || mid == second)
 			return null;
 		
