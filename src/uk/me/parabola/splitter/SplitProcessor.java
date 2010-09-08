@@ -14,6 +14,7 @@ package uk.me.parabola.splitter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,10 +45,13 @@ class SplitProcessor implements MapProcessor {
 	
 	private final int maxThreads;
 
-	TreeMap<Integer,ArrayList<OSMWriter>> writermap = new TreeMap<Integer,ArrayList<OSMWriter>>();
+	int lats[];
+	ArrayList<OSMWriter> writersets[];
+	
 	HashMap<OSMWriter,Integer> writerToID = new HashMap<OSMWriter,Integer>();
 	
 	void makeWriterMap() {
+		TreeMap<Integer,ArrayList<OSMWriter>> writermap = new TreeMap<Integer,ArrayList<OSMWriter>>();
 		for (int i = 0 ; i < writers.length ; i++) {
 			writerToID.put(writers[i],i);
 		}
@@ -56,6 +60,10 @@ class SplitProcessor implements MapProcessor {
 			writermap.put(w.getExtendedBounds().getMinLat(),new ArrayList<OSMWriter>());
 			writermap.put(w.getExtendedBounds().getMaxLat(),new ArrayList<OSMWriter>());
 		}
+		// Sentinel keys
+		writermap.put(Integer.MIN_VALUE,new ArrayList<OSMWriter>());
+		writermap.put(Integer.MAX_VALUE,new ArrayList<OSMWriter>());
+
 		for (OSMWriter w: writers) {
 			int minlat = w.getExtendedBounds().getMinLat();
 			int maxlat = w.getExtendedBounds().getMaxLat();
@@ -63,7 +71,14 @@ class SplitProcessor implements MapProcessor {
 				writermap.get(i).add(w);
 			}
 		}
-
+		lats = new int[writermap.size()];
+		writersets = new ArrayList[writermap.size()];
+		int i = 0;
+		for (Entry<Integer, ArrayList<OSMWriter>> e : writermap.entrySet()) {
+			lats[i] =  e.getKey();
+			writersets[i] = e.getValue();
+			i++;
+		}
 	}
 
 	SplitProcessor(OSMWriter[] writers, int maxThreads) {
@@ -221,10 +236,12 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	private void writeNode(Node currentNode) throws IOException {
-		Entry<Integer, ArrayList<OSMWriter>> entry = writermap.floorEntry(currentNode.getMapLat());
-		if (entry == null)
-			return;
-		for (OSMWriter w : entry.getValue()) {
+		int index = Arrays.binarySearch(lats, currentNode.getMapLat());
+		if (index < 0)
+			index = -index-1;
+
+		//System.out.println("Send to "+entry.getValue().size());
+		for (OSMWriter w : writersets[index]) {
 			int n = writerToID.get(w);
 			boolean found = w.nodeBelongsToThisArea(currentNode); 
 			if (found) {
