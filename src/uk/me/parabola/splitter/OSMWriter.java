@@ -138,9 +138,9 @@ public class OSMWriter {
 	}
 
 	private void writeTags(Element element) throws IOException {
-		Iterator<Map.Entry<String, String>> it = element.tagsIterator();
+		Iterator<Element.Tag> it = element.tagsIterator();
 		while (it.hasNext()) {
-			Map.Entry<String, String> entry = it.next();
+			Element.Tag entry = it.next();
 			writeString("<tag k='");
 			writeAttribute(entry.getKey());
 			writeString("' v='");
