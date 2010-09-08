@@ -34,6 +34,10 @@ public class OSMWriter {
 		this.bounds = bounds;
 	}
 
+	public Area getExtendedBounds() {
+		return extendedBounds;
+	}
+	
 	public void initForWrite(int mapId, int extra) {
 		extendedBounds = new Area(bounds.getMinLat() - extra,
 						bounds.getMinLong() - extra,

@@ -16,6 +16,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -41,8 +44,31 @@ class SplitProcessor implements MapProcessor {
 	
 	private final int maxThreads;
 
+	TreeMap<Integer,ArrayList<OSMWriter>> writermap = new TreeMap<Integer,ArrayList<OSMWriter>>();
+	HashMap<OSMWriter,Integer> writerToID = new HashMap<OSMWriter,Integer>();
+	
+	void makeWriterMap() {
+		for (int i = 0 ; i < writers.length ; i++) {
+			writerToID.put(writers[i],i);
+		}
+		
+		for (OSMWriter w : writers) {
+			writermap.put(w.getExtendedBounds().getMinLat(),new ArrayList<OSMWriter>());
+			writermap.put(w.getExtendedBounds().getMaxLat(),new ArrayList<OSMWriter>());
+		}
+		for (OSMWriter w: writers) {
+			int minlat = w.getExtendedBounds().getMinLat();
+			int maxlat = w.getExtendedBounds().getMaxLat();
+			for (Integer i = minlat ; i != null && i <= maxlat;  i = writermap.higherKey(i)) {
+				writermap.get(i).add(w);
+			}
+		}
+
+	}
+
 	SplitProcessor(OSMWriter[] writers, int maxThreads) {
 		this.writers = writers;
+		makeWriterMap();
 		this.maxThreads = maxThreads;
 		this.writerInputQueue = new ArrayBlockingQueue<InputQueueInfo>(writers.length); 
 		this.writerInputQueues = new BlockingQueue[writers.length];
@@ -195,13 +221,17 @@ class SplitProcessor implements MapProcessor {
 	}
 
 	private void writeNode(Node currentNode) throws IOException {
-		for (int n = 0; n < writers.length; n++) {
-			boolean found = writers[n].nodeBelongsToThisArea(currentNode); 
+		Entry<Integer, ArrayList<OSMWriter>> entry = writermap.floorEntry(currentNode.getMapLat());
+		if (entry == null)
+			return;
+		for (OSMWriter w : entry.getValue()) {
+			int n = writerToID.get(w);
+			boolean found = w.nodeBelongsToThisArea(currentNode); 
 			if (found) {
 				if (maxThreads > 1) {
 					addToWorkingQueue(n, currentNode);
 				} else {
-					writers[n].write(currentNode);
+					w.write(currentNode);
 				}
 				if (currentNodeAreaSet == 0) {
 					currentNodeAreaSet = n + 1;
