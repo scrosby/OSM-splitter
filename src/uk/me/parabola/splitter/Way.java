@@ -12,11 +12,13 @@
  */
 package uk.me.parabola.splitter;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 /**
  * @author Steve Ratcliffe
  */
 public class Way extends Element {
-	private final IntList refs = new IntList(10);
+	private final IntArrayList refs = new IntArrayList(10);
 
 	public void set(int id) {
 		setId(id);
@@ -32,7 +34,7 @@ public class Way extends Element {
 		refs.add(ref);
 	}
 
-	public IntList getRefs() {
+	public IntArrayList getRefs() {
 		return refs;
 	}
 }

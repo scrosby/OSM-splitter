@@ -85,7 +85,7 @@ class SplitProcessor implements MapProcessor {
 	@Override
 	public void processWay(Way w) {
 
-		for (int id: w.getRefs().asArray()) {
+		for (int id: w.getRefs()) {
 			// Get the list of areas that the node is in.  A node may be in
 			// more than one area because of overlap.
 			coords.addTo(id, currentWayAreaSet);

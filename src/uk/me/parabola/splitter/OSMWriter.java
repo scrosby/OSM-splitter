@@ -13,6 +13,8 @@
 
 package uk.me.parabola.splitter;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -101,7 +103,7 @@ public class OSMWriter {
 		writeString("<way id='");
 		writeInt(way.getId());
 		writeString("'>\n");
-		IntList refs = way.getRefs();
+		IntArrayList refs = way.getRefs();
 		for (int i = 0; i < refs.size(); i++) {
 			writeString("<nd ref='");
 			writeInt(refs.get(i));
