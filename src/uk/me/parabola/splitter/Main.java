@@ -185,7 +185,7 @@ public class Main {
 		}
 		mixed = params.isMixed();
 		maxAreasPerPass = params.getMaxAreas();
-		if (maxAreasPerPass < 1 || maxAreasPerPass > 255) {
+		if (maxAreasPerPass < 1 || maxAreasPerPass > 20000) {
 			System.err.println("The --max-areas parameter must be a value between 1 and 255. Resetting to 255.");
 			maxAreasPerPass = 255;
 		}
