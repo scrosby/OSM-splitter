@@ -8,9 +8,9 @@ import crosby.binary.Osmformat;
 
 public class BinaryMapParser extends BinaryParser {
 	// How many elements to process before displaying a status update
-	private static final int NODE_STATUS_UPDATE_THRESHOLD = 2500000;
-	private static final int WAY_STATUS_UPDATE_THRESHOLD = 500000;
-	private static final int RELATION_STATUS_UPDATE_THRESHOLD = 50000;
+	private static final int NODE_STATUS_UPDATE_THRESHOLD = 10000000;
+	private static final int WAY_STATUS_UPDATE_THRESHOLD = 1000000;
+	private static final int RELATION_STATUS_UPDATE_THRESHOLD = 100000;
 
 	
 	private long nodeCount;
