@@ -48,7 +48,7 @@ public class BinaryMapParser extends BinaryParser {
                 j++; // Skip over the '0' delimiter.
             }
 			processor.processNode(tmp);
-			processNodes();
+			processNodes(tmp);
 		}
 	}
 
@@ -63,7 +63,7 @@ public class BinaryMapParser extends BinaryParser {
 			tmp.set((int)id, latf, lonf);
 
 			processor.processNode(tmp);
-			processNodes();
+			processNodes(tmp);
 		}
 	}
 
@@ -84,7 +84,7 @@ public class BinaryMapParser extends BinaryParser {
 			tmp.set((int)id);
 
 			processor.processWay(tmp);
-			processWays();
+			processWays(tmp);
 		}
 	}
 	protected void parseRelations(List<Osmformat.Relation> rels) {
@@ -115,7 +115,7 @@ public class BinaryMapParser extends BinaryParser {
 				tmp.addMember(etype,(int)mid,role);
 			}
 			processor.processRelation(tmp);
-			processRelations();
+			processRelations(tmp);
 		}
 	}
 
@@ -143,24 +143,24 @@ public class BinaryMapParser extends BinaryParser {
 	}
 	
 
-	private void processNodes() {
+	private void processNodes(Node tmp) {
 		nodeCount++;
 		if (nodeCount % NODE_STATUS_UPDATE_THRESHOLD == 0) {
-			System.out.println(Utils.format(nodeCount) + " nodes processed...");
+			System.out.println(Utils.format(nodeCount) + " nodes processed... id="+tmp.getId());
 		}
 
 }
 
-private void processWays()  {
+private void processWays(Way tmp)  {
 	wayCount++;
 	if (wayCount % WAY_STATUS_UPDATE_THRESHOLD == 0) {
-		System.out.println(Utils.format(wayCount) + " ways processed...");
+		System.out.println(Utils.format(wayCount) + " ways processed... id="+tmp.getId());
 	}
 }
-private void processRelations()  {
+private void processRelations(Relation tmp)  {
 	relationCount++;
 	if (relationCount % RELATION_STATUS_UPDATE_THRESHOLD == 0) {
-		System.out.println(Utils.format(relationCount) + " ways processed...");
+		System.out.println(Utils.format(relationCount) + " ways processed... id="+tmp.getId());
 	}
 }
 
