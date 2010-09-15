@@ -13,13 +13,15 @@
 
 package uk.me.parabola.splitter;
 
+import junit.framework.TestCase;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 /**
  * 
  */
-public class TestCustomCollections {
+public class TestCustomCollections extends TestCase {
 	@Test
 	public void testIntList() {
 		SplitIntList list = new SplitIntList(10);
@@ -46,41 +48,40 @@ public class TestCustomCollections {
 		}
 	}
 
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void testInit() {
-		new IntObjMap<String>(123, 0.5f);
-	}
+	//@Test(expectedExceptions = IllegalArgumentException.class)
+	//public void testInit() {
+	//	new IntObjMap<String>(123, 0.5f);
+	//}
 
 	@Test
 	public void testIntIntMap() {
-		testMap(new IntIntMap());
-		testMap(new IntIntMap(64, 0.7f));
-		testMap(new IntIntMap(1024, 0.7f));
+		testMap(new SparseInt2ShortMap());
 	}
 
-	private void testMap(IntIntMap map) {
-		for (int i = 1; i < 1000; i++) {
+	private void testMap(SparseInt2ShortMap map) {
+		map.defaultReturnValue((short) 0);
+		for (short i = 1; i < 1000; i++) {
 			int j = map.put(i, i);
 			Assert.assertEquals(j, 0);
 			Assert.assertEquals(map.size(), i);
 		}
 
-		for (int i = 1; i < 1000; i++) {
+		for (short i = 1; i < 1000; i++) {
 			Assert.assertEquals(map.get(i), i);
 		}
 
-		for (int i = 1000; i < 2000; i++) {
+		for (short i = 1000; i < 2000; i++) {
 			Assert.assertEquals(map.get(i), 0);
 		}
 
-		for (int i = -2000; i < -1000; i++) {
+		for (short i = -2000; i < -1000; i++) {
 			Assert.assertEquals(map.get(i), 0);
 		}
 
 		Assert.assertEquals(map.get(123456), 0);
-		map.put(123456, 999);
+		map.put(123456, (short) 999);
 		Assert.assertEquals(map.get(123456), 999);
-		map.put(123456, 888);
+		map.put(123456, (short) 888);
 		Assert.assertEquals(map.get(123456), 888);
 	}
 
