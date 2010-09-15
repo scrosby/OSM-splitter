@@ -40,7 +40,13 @@ public class JVMHealthMonitor {
 		statusThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
+				int iter=0;
 				while (true) {
+					iter++;
+					if (iter%10 == 0) {
+						System.out.println("***** Full GC *****");
+						System.gc();
+					}
 					long maxMem = Runtime.getRuntime().maxMemory() / 1024 / 1024;
 					long totalMem = Runtime.getRuntime().totalMemory() / 1024 / 1024;
 					long freeMem = Runtime.getRuntime().freeMemory() / 1024 / 1024;
