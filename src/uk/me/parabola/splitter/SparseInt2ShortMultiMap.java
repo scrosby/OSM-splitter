@@ -58,7 +58,7 @@ public class SparseInt2ShortMultiMap {
 			if (false && depth == 0)
 				map = new DenseInt2ShortMap();
 			else if (depth < countDense)
-				map = new SparseInt2ShortMap();
+				map = new SparseInt2ShortMapInline();
 			else
 				map = new Int2ShortOpenHashMap();
 			map.defaultReturnValue(unassigned);

@@ -1,5 +1,7 @@
 package uk.me.parabola.splitter;
 
+import java.util.Arrays;
+
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.fastutil.ints.Int2ShortFunction;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -12,12 +14,55 @@ public class SparseInt2ShortMapInline  implements Int2ShortFunction {
 	/** What to return on unassigned indices */
 	short unassigned = -1;
 	
-	ObjectArrayList<ShortArrayList> valschunks;
+	ObjectArrayList<short []> valschunks;
 	LongArrayList bitmasks;
 	int capacity;
 	int size;
 	int lastTrim = 0;
 
+
+	void arrayPush(short [] array, int index) {
+		for (int j=array.length-1 ; j > index ; j--)
+			array[j]=array[j-1];
+	}
+	void arrayUnpush(short [] array,int index) {
+		for (int j=index ; j < array.length ; j++)
+			array[j]=array[j+1];
+		array[array.length-1] = unassigned;
+	}
+
+	void arrayCopyFill(short [] from, short [] to) {
+		int j=0;
+		for ( ; j < from.length ; j++)
+			to[j]=from[j];
+		for ( ; j < to.length ; j++)
+			to[j] = unassigned;
+	}
+	
+	short []chunkAdd(short[] array, int index, short val) {
+		if (array[array.length-1] != unassigned) {
+			short tmp[] = new short[array.length+4];
+			arrayCopyFill(array,tmp);
+			array = tmp;
+		}
+		arrayPush(array,index);
+		array[index] = val;
+		return array;
+	}
+	short []chunkMake() {
+		short out[] = new short[4];
+		Arrays.fill(out,(short)4);
+		return out;
+		}
+	void chunkSet(short[] array, int index, short val) {
+		array[index] = val;
+	}
+	short chunkGet(short[] array, int index) {
+		return array[index];
+	}
+	void chunkRem(short[] array, int index) {
+		arrayUnpush(array,index);
+	}
 	
 	void chunkAdd(ShortArrayList arraylist, int index, short val) {
 		arraylist.add(index,val);
@@ -79,8 +124,8 @@ public class SparseInt2ShortMapInline  implements Int2ShortFunction {
 		int chunkid = key/CHUNK_SIZE;
 		int chunkoffset = key%CHUNK_SIZE;
 		if (valschunks.get(chunkid) == null)
-			valschunks.set(chunkid, new ShortArrayList(1));
-		ShortArrayList chunk = valschunks.get(chunkid);
+			valschunks.set(chunkid, chunkMake());
+		short[] chunk = valschunks.get(chunkid);
 		long chunkmask = bitmasks.get(chunkid);
 		long elementmask = 1L << chunkoffset;
 		if ((chunkmask & elementmask) != 0) {
@@ -93,7 +138,7 @@ public class SparseInt2ShortMapInline  implements Int2ShortFunction {
 			size++;
 			// Not in the array. Time to insert.
 			int offset = countUnder(chunkmask,chunkoffset);
-			chunkAdd(chunk,offset,val);
+			valschunks.set(chunkid,chunkAdd(chunk,offset,val));
 			bitmasks.set(chunkid, elementmask | chunkmask);
 			//System.out.println("Returning unassigned from put "+ key + " " + val);
 			return unassigned;
@@ -105,7 +150,7 @@ public class SparseInt2ShortMapInline  implements Int2ShortFunction {
 		int chunkoffset = key%CHUNK_SIZE;
 		if (key <= 0 || chunkid >= valschunks.size())
 			return unassigned;
-		ShortArrayList chunk = valschunks.get(chunkid);
+		short[] chunk = valschunks.get(chunkid);
 		long chunkmask = bitmasks.get(chunkid);
 		long elementmask = 1L << chunkoffset;
 		if ((chunkmask & elementmask) == 0) {
@@ -120,7 +165,7 @@ public class SparseInt2ShortMapInline  implements Int2ShortFunction {
 		int chunkoffset = key%CHUNK_SIZE;
 		if (chunkid >= valschunks.size())
 			return unassigned;
-		ShortArrayList chunk = valschunks.get(chunkid);
+		short[] chunk = valschunks.get(chunkid);
 		long chunkmask = bitmasks.get(chunkid);
 		long elementmask = 1L << chunkoffset;
 		if ((chunkmask & elementmask) == 0) {
@@ -140,7 +185,7 @@ public class SparseInt2ShortMapInline  implements Int2ShortFunction {
 
 	@Override
 	public void clear() {
-		valschunks = new ObjectArrayList<ShortArrayList>();
+		valschunks = new ObjectArrayList<short[]>();
 		bitmasks = new LongArrayList();	
 		capacity = 0;
 		size = 0;
