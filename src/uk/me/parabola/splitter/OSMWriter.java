@@ -13,11 +13,15 @@
 
 package uk.me.parabola.splitter;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +30,11 @@ import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public class OSMWriter {
+	static final DecimalFormat numberFormat = new DecimalFormat(
+			"0.#######;-0.#######",
+			new DecimalFormatSymbols(Locale.US)
+		);
+	
 	private final Area bounds;
 	private Writer writer;
 	private Area extendedBounds;
@@ -34,6 +43,10 @@ public class OSMWriter {
 		this.bounds = bounds;
 	}
 
+	public Area getExtendedBounds() {
+		return extendedBounds;
+	}
+	
 	public void initForWrite(int mapId, int extra) {
 		extendedBounds = new Area(bounds.getMinLat() - extra,
 						bounds.getMinLong() - extra,
@@ -57,13 +70,13 @@ public class OSMWriter {
 		writeString("<osm version='0.5' generator='splitter'>\n");
 
 		writeString("<bounds minlat='");
-		writeDouble(Utils.toDegrees(bounds.getMinLat()));
+		writeLongDouble(Utils.toDegrees(bounds.getMinLat()));
 		writeString("' minlon='");
-		writeDouble(Utils.toDegrees(bounds.getMinLong()));
+		writeLongDouble(Utils.toDegrees(bounds.getMinLong()));
 		writeString("' maxlat='");
-		writeDouble(Utils.toDegrees(bounds.getMaxLat()));
+		writeLongDouble(Utils.toDegrees(bounds.getMaxLat()));
 		writeString("' maxlon='");
-		writeDouble(Utils.toDegrees(bounds.getMaxLong()));
+		writeLongDouble(Utils.toDegrees(bounds.getMaxLong()));
 		writeString("'/>\n");
 	}
 
@@ -101,7 +114,7 @@ public class OSMWriter {
 		writeString("<way id='");
 		writeInt(way.getId());
 		writeString("'>\n");
-		IntList refs = way.getRefs();
+		IntArrayList refs = way.getRefs();
 		for (int i = 0; i < refs.size(); i++) {
 			writeString("<nd ref='");
 			writeInt(refs.get(i));
@@ -138,9 +151,9 @@ public class OSMWriter {
 	}
 
 	private void writeTags(Element element) throws IOException {
-		Iterator<Map.Entry<String, String>> it = element.tagsIterator();
+		Iterator<Element.Tag> it = element.tagsIterator();
 		while (it.hasNext()) {
-			Map.Entry<String, String> entry = it.next();
+			Element.Tag entry = it.next();
 			writeString("<tag k='");
 			writeAttribute(entry.getKey());
 			writeString("' v='");
@@ -196,11 +209,34 @@ public class OSMWriter {
 		index += end - start;
 	}
 
+	/** Write a double to full precision */
+	private void writeLongDouble(double value) throws IOException {
+		checkFlush(22);
+        writeString(Double.toString(value));
+	}
+	/** Write a double truncated to OSM's 7 digits of precision
+	 *
+	 *  TODO: Optimize. Responsible for >30% of the runtime after other using binary 
+	 *  format and improved hash table.
+	 */
 	private void writeDouble(double value) throws IOException {
 		checkFlush(22);
-		writeString(Double.toString(value));
-	}
+		// Punt on some annoying specialcases
+		if (value < -200 || value > 200 || (value > -1 && value < 1))
+			writeString(numberFormat.format(value));
+		else {
+		     if (value < 0) {
+		    	 charBuf[index++] = '-'; // Write directly.
+		    	 value = -value;
+		     }
 
+		int val = (int)Math.round(value*10000000);
+		StringBuilder s = new StringBuilder(Integer.toString(val));
+		s.insert(s.length()-7, '.');
+		writeString(s.toString());
+		}
+	}
+	
 	private void writeInt(int value) throws IOException {
 		checkFlush(11);
 		index += Convert.intToString(value, charBuf, index);

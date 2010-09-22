@@ -12,6 +12,8 @@
  */
 package uk.me.parabola.splitter;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -20,9 +22,10 @@ import java.util.Map;
  * @author Steve Ratcliffe
  */
 public class Element {
-	private Map<String, String> tags = new HashMap<String, String>(8);
+	private ArrayList<Tag> tags; 
 	private int id;
 
+	
 	protected void setId(int id) {
 		this.id = id;
 	}
@@ -34,19 +37,42 @@ public class Element {
 	public void reset() {
 		this.id = 0;
 		tags.clear();
+		//tags = null;
 	}
 
+	class Tag {
+		public Tag(String key,String value) {
+			this.key = key;
+			this.value = value;
+		}
+		public String getKey() {
+			return key;
+		}
+		public String getValue() {
+			return value;
+		}
+		final public String key,value;
+	}
+	
 	public void addTag(String key, String value) {
 		if (key.equals("created_by"))
 			return;
-		tags.put(key, value);
+		// Most elements are nodes. Most nodes have no tags. Create the tag table lazily
+		if (tags == null)
+			tags = new ArrayList<Tag>(4);
+
+		tags.add(new Tag(key, value));
 	}
 
 	public boolean hasTags() {
 		return tags != null && !tags.isEmpty();
 	}
 
-	public Iterator<Map.Entry<String, String>> tagsIterator() {
-		return tags.entrySet().iterator();
+	public Iterator<Tag> tagsIterator() {
+		if (tags == null)
+			return Collections.EMPTY_LIST.iterator();
+
+		//Map.Entry<String,String> foo=new Map.Entry<String,String>("A","B");
+		return tags.iterator();
 	}
 }

@@ -36,12 +36,12 @@ class NodeCollector implements MapCollector {
 	}
 
 	@Override
-	public void startNode(int id, double lat, double lon) {
+	public void processNode(Node n) {
 		// Since we are rounding areas to fit on a low zoom boundary we
 		// can drop the bottom 8 bits of the lat and lon and then fit
 		// the whole lot into a single int.
-		int glat = Utils.toMapUnit(lat);
-		int glon = Utils.toMapUnit(lon);
+		int glat = Utils.toMapUnit(n.getLat());
+		int glon = Utils.toMapUnit(n.getLon());		
 		int coord = ((glat << 8) & 0xffff0000) + ((glon >> 8) & 0xffff);
 
 		coords.add(coord);
@@ -49,37 +49,10 @@ class NodeCollector implements MapCollector {
 	}
 
 	@Override
-	public void startWay(int id) {}
+	public void processWay(Way w) {}
 
 	@Override
-	public void startRelation(int id) {}
-
-	@Override
-	public void nodeTag(String key, String value) {}
-
-	@Override
-	public void wayTag(String key, String value) {}
-
-	@Override
-	public void relationTag(String key, String value) {}
-
-	@Override
-	public void wayNode(int nodeId) {}
-
-	@Override
-	public void relationNode(int nodeId, String role) {}
-
-	@Override
-	public void relationWay(int wayId, String role) {}
-
-	@Override
-	public void endNode() {}
-
-	@Override
-	public void endWay() {}
-
-	@Override
-	public void endRelation() {}
+	public void processRelation(Relation r) {}
 
 	@Override
 	public void endMap() {}
