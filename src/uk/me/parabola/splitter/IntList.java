@@ -18,7 +18,6 @@ package uk.me.parabola.splitter;
 
 import java.util.Arrays;
 
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 /**
  * Maintains a list of int primitives.
